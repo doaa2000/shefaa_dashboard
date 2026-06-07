@@ -139,7 +139,15 @@ export interface Database {
           notes?: string | null
         }
         Update: Partial<Database['public']['Tables']['appointments']['Insert']>
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: 'appointments_patient_id_fkey'
+            columns: ['patient_id']
+            isOneToOne: false
+            referencedRelation: 'patients'
+            referencedColumns: ['id']
+          },
+        ]
       }
       consultations: {
         Row: {
@@ -171,7 +179,15 @@ export interface Database {
           consulted_at?: string
         }
         Update: Partial<Database['public']['Tables']['consultations']['Insert']>
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: 'consultations_patient_id_fkey'
+            columns: ['patient_id']
+            isOneToOne: false
+            referencedRelation: 'patients'
+            referencedColumns: ['id']
+          },
+        ]
       }
       prescriptions: {
         Row: {
@@ -195,7 +211,15 @@ export interface Database {
           issued_at?: string
         }
         Update: Partial<Database['public']['Tables']['prescriptions']['Insert']>
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: 'prescriptions_patient_id_fkey'
+            columns: ['patient_id']
+            isOneToOne: false
+            referencedRelation: 'patients'
+            referencedColumns: ['id']
+          },
+        ]
       }
       prescription_items: {
         Row: {
@@ -218,7 +242,15 @@ export interface Database {
           instructions?: string | null
         }
         Update: Partial<Database['public']['Tables']['prescription_items']['Insert']>
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: 'prescription_items_prescription_id_fkey'
+            columns: ['prescription_id']
+            isOneToOne: false
+            referencedRelation: 'prescriptions'
+            referencedColumns: ['id']
+          },
+        ]
       }
       notifications: {
         Row: {

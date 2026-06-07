@@ -2,7 +2,7 @@
 import BaseSkeleton from './BaseSkeleton.vue'
 import BaseEmptyState from './BaseEmptyState.vue'
 
-export interface Column<R> {
+export interface Column {
   key: string
   label: string
   align?: 'left' | 'right' | 'center'
@@ -10,7 +10,7 @@ export interface Column<R> {
 }
 
 defineProps<{
-  columns: Column<T>[]
+  columns: Column[]
   rows: T[]
   loading?: boolean
   emptyTitle?: string

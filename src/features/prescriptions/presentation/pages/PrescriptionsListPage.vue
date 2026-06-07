@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useConsultationStore } from '../../store/consultation.store'
+import { usePrescriptionStore } from '../../store/prescription.store'
 import { usePagination } from '@/shared/composables/usePagination'
 import { useToast } from '@/shared/composables/useToast'
 import { formatDate } from '@/shared/utils/datetime'
-import { truncate } from '@/shared/utils/formatters'
-import ConsultationFormModal from '../components/ConsultationFormModal.vue'
-import type { ConsultationFormValues } from '../../domain/consultation.schema'
-import type { Consultation } from '../../domain/consultation.models'
+import { pluralize } from '@/shared/utils/formatters'
+import PrescriptionFormModal from '../components/PrescriptionFormModal.vue'
+import type { PrescriptionFormValues } from '../../domain/prescription.schema'
+import type { Prescription, PrescriptionStatus } from '../../domain/prescription.models'
 import {
   BaseBadge,
   BaseButton,
@@ -17,18 +17,24 @@ import {
   type Column,
 } from '@/shared/ui'
 
-const store = useConsultationStore()
+const store = usePrescriptionStore()
 const toast = useToast()
 const { items, total, loading, saving } = storeToRefs(store)
 
 const pagination = usePagination({ pageSize: 10 })
 const modalOpen = ref(false)
-const editing = ref<Consultation | null>(null)
+const editing = ref<Prescription | null>(null)
+
+const statusTone: Record<PrescriptionStatus, 'success' | 'neutral' | 'danger'> = {
+  active: 'success',
+  completed: 'neutral',
+  cancelled: 'danger',
+}
 
 const columns: Column[] = [
-  { key: 'consultedAt', label: 'Date' },
+  { key: 'issuedAt', label: 'Issued' },
   { key: 'patientName', label: 'Patient' },
-  { key: 'diagnosis', label: 'Diagnosis' },
+  { key: 'items', label: 'Medications' },
   { key: 'status', label: 'Status', align: 'center' },
   { key: 'actions', label: '', align: 'right' },
 ]
@@ -45,32 +51,35 @@ function openCreate() {
   editing.value = null
   modalOpen.value = true
 }
-function openEdit(c: Consultation) {
-  editing.value = c
+function openEdit(p: Prescription) {
+  editing.value = p
   modalOpen.value = true
 }
 
-async function onSubmit(values: ConsultationFormValues) {
+async function onSubmit(values: PrescriptionFormValues) {
   const payload = {
     patientId: values.patientId,
-    appointmentId: null,
-    chiefComplaint: values.chiefComplaint ?? null,
-    diagnosis: values.diagnosis ?? null,
-    symptoms: values.symptoms ?? [],
-    clinicalNotes: values.clinicalNotes ?? null,
-    vitals: values.vitals ?? {},
+    consultationId: null,
     status: values.status,
-    consultedAt: values.consultedAt,
+    notes: values.notes ?? null,
+    issuedAt: values.issuedAt,
+    items: values.items.map((it) => ({
+      medicationName: it.medicationName,
+      dosage: it.dosage ?? null,
+      frequency: it.frequency ?? null,
+      duration: it.duration ?? null,
+      instructions: it.instructions ?? null,
+    })),
   }
   const saved = editing.value
     ? await store.update(editing.value.id, payload)
     : await store.create(payload)
   if (saved) {
-    toast.success(editing.value ? 'Consultation updated' : 'Consultation recorded')
+    toast.success(editing.value ? 'Prescription updated' : 'Prescription issued')
     modalOpen.value = false
     await load()
   } else if (store.error) {
-    toast.error('Could not save consultation', store.error.message)
+    toast.error('Could not save prescription', store.error.message)
   }
 }
 </script>
@@ -79,26 +88,24 @@ async function onSubmit(values: ConsultationFormValues) {
   <div class="space-y-5">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
-        <h1 class="text-xl font-semibold text-slate-900">Consultations</h1>
-        <p class="text-sm text-slate-500">Clinical encounter records</p>
+        <h1 class="text-xl font-semibold text-slate-900">Prescriptions</h1>
+        <p class="text-sm text-slate-500">Issue and manage prescriptions</p>
       </div>
-      <BaseButton @click="openCreate">+ New consultation</BaseButton>
+      <BaseButton @click="openCreate">+ New prescription</BaseButton>
     </div>
 
     <BaseTable
       :columns="columns"
       :rows="items"
       :loading="loading"
-      empty-title="No consultations"
-      empty-description="Record your first consultation."
+      empty-title="No prescriptions"
+      empty-description="Issue your first prescription."
     >
-      <template #cell:consultedAt="{ row }">{{ formatDate(row.consultedAt) }}</template>
+      <template #cell:issuedAt="{ row }">{{ formatDate(row.issuedAt) }}</template>
       <template #cell:patientName="{ row }">{{ row.patientName ?? '—' }}</template>
-      <template #cell:diagnosis="{ row }">{{ row.diagnosis ? truncate(row.diagnosis, 50) : '—' }}</template>
+      <template #cell:items="{ row }">{{ pluralize(row.items.length, 'medication') }}</template>
       <template #cell:status="{ row }">
-        <BaseBadge :tone="row.status === 'finalized' ? 'success' : 'warning'">
-          {{ row.status === 'finalized' ? 'Finalized' : 'Draft' }}
-        </BaseBadge>
+        <BaseBadge :tone="statusTone[row.status]">{{ row.status }}</BaseBadge>
       </template>
       <template #cell:actions="{ row }">
         <BaseButton size="sm" variant="ghost" @click="openEdit(row)">Edit</BaseButton>
@@ -115,6 +122,6 @@ async function onSubmit(values: ConsultationFormValues) {
       @next="pagination.next"
     />
 
-    <ConsultationFormModal v-model="modalOpen" :consultation="editing" :saving="saving" @submit="onSubmit" />
+    <PrescriptionFormModal v-model="modalOpen" :prescription="editing" :saving="saving" @submit="onSubmit" />
   </div>
 </template>

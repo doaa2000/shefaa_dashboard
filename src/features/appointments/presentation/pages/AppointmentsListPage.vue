@@ -32,7 +32,7 @@ const statusFilter = ref<AppointmentStatus | ''>('')
 const modalOpen = ref(false)
 const editing = ref<Appointment | null>(null)
 
-const columns: Column<Appointment>[] = [
+const columns: Column[] = [
   { key: 'scheduledAt', label: 'When' },
   { key: 'patientName', label: 'Patient' },
   { key: 'type', label: 'Type' },

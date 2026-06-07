@@ -29,7 +29,7 @@ const pagination = usePagination({ pageSize: 10 })
 const { term, debounced } = useDebouncedSearch()
 const modalOpen = ref(false)
 
-const columns: Column<Patient>[] = [
+const columns: Column[] = [
   { key: 'fullName', label: 'Patient' },
   { key: 'contact', label: 'Contact' },
   { key: 'age', label: 'Age', align: 'center' },

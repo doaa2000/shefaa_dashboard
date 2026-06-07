@@ -10,7 +10,7 @@ interface Option<V> {
 const props = withDefaults(
   defineProps<{
     modelValue: T | null | undefined
-    options: Option<T>[]
+    options: readonly Option<T>[]
     placeholder?: string
     disabled?: boolean
     invalid?: boolean

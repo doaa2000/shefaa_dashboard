@@ -23,6 +23,14 @@ module.exports = {
     '@typescript-eslint/no-explicit-any': 'error',
     '@typescript-eslint/consistent-type-imports': 'error',
     '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    // Optional props default to `undefined` — acceptable with strict TS typing.
+    'vue/require-default-prop': 'off',
+    // Formatting is owned by Prettier; disable conflicting stylistic rules.
+    'vue/max-attributes-per-line': 'off',
+    'vue/singleline-html-element-content-newline': 'off',
+    'vue/html-self-closing': 'off',
+    'vue/html-indent': 'off',
+    'vue/attributes-order': 'off',
   },
   ignorePatterns: ['dist', 'node_modules', 'src/core/types/database.types.ts'],
 }
