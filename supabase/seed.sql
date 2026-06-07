@@ -1,0 +1,4 @@
+-- Seed data is intentionally empty for production.
+-- Profiles are created automatically by the on_auth_user_created trigger.
+-- Use the application UI (or a dedicated seeding script) to create demo data
+-- against an authenticated session so RLS policies are respected.
