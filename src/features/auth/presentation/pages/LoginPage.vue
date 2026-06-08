@@ -24,8 +24,8 @@ const onSubmit = handleSubmit(async (values) => {
   if (success) {
     const redirect = (route.query.redirect as string) || '/'
     await router.replace(redirect)
-  } else if (auth.error) {
-    toast.error('Sign in failed', auth.error.message)
+  } else {
+    toast.error('Sign in failed', auth.error?.message ?? 'Invalid email or password.')
   }
 })
 </script>

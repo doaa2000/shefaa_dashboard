@@ -55,12 +55,13 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true
     error.value = null
     const result = await service.signIn(credentials)
-    loading.value = false
     if (isOk(result)) {
       session.value = result.value
       await loadProfile()
+      loading.value = false
       return true
     }
+    loading.value = false
     error.value = result.error
     return false
   }
