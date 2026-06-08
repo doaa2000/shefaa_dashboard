@@ -11,13 +11,13 @@ import type {
 } from '../domain/consultation.models'
 import { toConsultation, toInsert, toUpdate } from './consultation.mapper'
 
-const SELECT = '*, patients(full_name)'
+const SELECT = '*, profiles(name)'
 
 export class SupabaseConsultationRepository implements IConsultationRepository {
   constructor(private readonly client: AppSupabaseClient) {}
 
   async list(
-    doctorId: string,
+    doctorId: number,
     query: ConsultationListQuery,
   ): Promise<Result<ConsultationListResult, AppError>> {
     try {
@@ -50,7 +50,7 @@ export class SupabaseConsultationRepository implements IConsultationRepository {
   }
 
   async create(
-    doctorId: string,
+    doctorId: number,
     input: CreateConsultationInput,
   ): Promise<Result<Consultation, AppError>> {
     try {

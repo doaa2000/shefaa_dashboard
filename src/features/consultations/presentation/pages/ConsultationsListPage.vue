@@ -53,7 +53,7 @@ function openEdit(c: Consultation) {
 async function onSubmit(values: ConsultationFormValues) {
   const payload = {
     patientId: values.patientId,
-    appointmentId: null,
+    bookingId: null,
     chiefComplaint: values.chiefComplaint ?? null,
     diagnosis: values.diagnosis ?? null,
     symptoms: values.symptoms ?? [],

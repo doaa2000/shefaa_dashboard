@@ -2,7 +2,13 @@ import type { AppSupabaseClient } from '@/core/http/supabase.client'
 import { type Result, ok, err } from '@/core/result'
 import { AppError, normalizeError } from '@/core/errors'
 import type { IAuthRepository } from '../domain/auth.repository'
-import type { Credentials, DoctorProfile, RegisterPayload, Session } from '../domain/auth.models'
+import type {
+  Credentials,
+  DoctorProfile,
+  DoctorProfilePatch,
+  RegisterPayload,
+  Session,
+} from '../domain/auth.models'
 import { toDoctorProfile, toSession } from './auth.mapper'
 
 export class SupabaseAuthRepository implements IAuthRepository {
@@ -35,7 +41,7 @@ export class SupabaseAuthRepository implements IAuthRepository {
       const { data, error } = await this.client.auth.signUp({
         email: payload.email,
         password: payload.password,
-        options: { data: { full_name: payload.fullName } },
+        options: { data: { full_name: payload.fullName, role: 'doctor' } },
       })
       if (error) return err(normalizeError(error))
       return ok(toSession(data.session))
@@ -66,38 +72,56 @@ export class SupabaseAuthRepository implements IAuthRepository {
     }
   }
 
-  async getProfile(userId: string): Promise<Result<DoctorProfile, AppError>> {
+  async getProfile(userId: string): Promise<Result<DoctorProfile | null, AppError>> {
     try {
       const { data, error } = await this.client
-        .from('profiles')
+        .from('Doctors')
         .select('*')
-        .eq('id', userId)
+        .eq('user_id', userId)
+        .maybeSingle()
+      if (error) return err(normalizeError(error))
+      return ok(data ? toDoctorProfile(data) : null)
+    } catch (e) {
+      return err(normalizeError(e))
+    }
+  }
+
+  async createProfile(
+    userId: string,
+    data: { name: string; email: string },
+  ): Promise<Result<DoctorProfile, AppError>> {
+    try {
+      const { data: row, error } = await this.client
+        .from('Doctors')
+        .insert({ user_id: userId, name: data.name, email: data.email })
+        .select('*')
         .single()
       if (error) return err(normalizeError(error))
-      return ok(toDoctorProfile(data))
+      return ok(toDoctorProfile(row))
     } catch (e) {
       return err(normalizeError(e))
     }
   }
 
   async updateProfile(
-    userId: string,
-    patch: Partial<Omit<DoctorProfile, 'id' | 'email' | 'createdAt' | 'updatedAt'>>,
+    doctorId: number,
+    patch: DoctorProfilePatch,
   ): Promise<Result<DoctorProfile, AppError>> {
     try {
       const { data, error } = await this.client
-        .from('profiles')
+        .from('Doctors')
         .update({
-          full_name: patch.fullName,
+          name: patch.name,
           phone: patch.phone,
-          avatar_url: patch.avatarUrl,
-          specialty: patch.specialty,
+          title: patch.title,
+          specialization: patch.specialization,
           bio: patch.bio,
           license_number: patch.licenseNumber,
-          clinic_name: patch.clinicName,
-          timezone: patch.timezone,
+          image: patch.image,
+          consultation_fee: patch.consultationFee,
+          location: patch.location,
         })
-        .eq('id', userId)
+        .eq('id', doctorId)
         .select('*')
         .single()
       if (error) return err(normalizeError(error))

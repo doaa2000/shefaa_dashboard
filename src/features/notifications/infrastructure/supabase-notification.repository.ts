@@ -3,13 +3,17 @@ import { type Result, ok, err } from '@/core/result'
 import { type AppError, normalizeError } from '@/core/errors'
 import type { Tables } from '@/core/types/database.types'
 import type { INotificationRepository } from '../domain/notification.repository'
-import type { AppNotification, NotificationListResult } from '../domain/notification.models'
+import type {
+  AppNotification,
+  NotificationListResult,
+  NotificationType,
+} from '../domain/notification.models'
 
 function toNotification(row: Tables<'notifications'>): AppNotification {
   return {
     id: row.id,
     doctorId: row.doctor_id,
-    type: row.type,
+    type: row.type as NotificationType,
     title: row.title,
     body: row.body,
     isRead: row.is_read,
@@ -22,7 +26,7 @@ function toNotification(row: Tables<'notifications'>): AppNotification {
 export class SupabaseNotificationRepository implements INotificationRepository {
   constructor(private readonly client: AppSupabaseClient) {}
 
-  async list(doctorId: string, limit = 30): Promise<Result<NotificationListResult, AppError>> {
+  async list(doctorId: number, limit = 30): Promise<Result<NotificationListResult, AppError>> {
     try {
       const { data, error } = await this.client
         .from('notifications')
@@ -53,7 +57,7 @@ export class SupabaseNotificationRepository implements INotificationRepository {
     }
   }
 
-  async markAllAsRead(doctorId: string): Promise<Result<void, AppError>> {
+  async markAllAsRead(doctorId: number): Promise<Result<void, AppError>> {
     try {
       const { error } = await this.client
         .from('notifications')
@@ -77,8 +81,7 @@ export class SupabaseNotificationRepository implements INotificationRepository {
     }
   }
 
-  /** Realtime subscription for live notifications (Supabase Realtime). */
-  subscribe(doctorId: string, onInsert: (n: AppNotification) => void): () => void {
+  subscribe(doctorId: number, onInsert: (n: AppNotification) => void): () => void {
     const channel = this.client
       .channel(`notifications:${doctorId}`)
       .on(

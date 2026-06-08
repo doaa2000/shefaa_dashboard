@@ -5,4 +5,5 @@ export interface DashboardSummary {
   consultationsThisMonth: number
   activePrescriptions: number
   unreadNotifications: number
+  revenueThisMonth: number
 }

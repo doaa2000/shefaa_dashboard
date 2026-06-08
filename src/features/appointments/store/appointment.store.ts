@@ -7,7 +7,6 @@ import { useAuthStore } from '@/features/auth/store/auth.store'
 import type {
   Appointment,
   AppointmentListQuery,
-  AppointmentStatus,
   CreateAppointmentInput,
   UpdateAppointmentInput,
 } from '../domain/appointment.models'
@@ -22,11 +21,11 @@ export const useAppointmentStore = defineStore('appointments', () => {
   const saving = ref(false)
   const error = ref<AppError | null>(null)
 
-  async function fetchList(query: Omit<AppointmentListQuery, 'from' | 'to'> & { from: number; to: number }): Promise<void> {
-    if (!auth.userId) return
+  async function fetchList(query: AppointmentListQuery): Promise<void> {
+    if (!auth.doctorId) return
     loading.value = true
     error.value = null
-    const result = await service.list(auth.userId, query)
+    const result = await service.list(auth.doctorId, query)
     loading.value = false
     if (isOk(result)) {
       items.value = result.value.items
@@ -37,17 +36,17 @@ export const useAppointmentStore = defineStore('appointments', () => {
   }
 
   async function create(input: CreateAppointmentInput): Promise<Appointment | null> {
-    if (!auth.userId) return null
+    if (!auth.doctorId) return null
     saving.value = true
     error.value = null
-    const result = await service.create(auth.userId, input)
+    const result = await service.create(auth.doctorId, input)
     saving.value = false
     if (isOk(result)) return result.value
     error.value = result.error
     return null
   }
 
-  async function update(id: string, input: UpdateAppointmentInput): Promise<Appointment | null> {
+  async function update(id: number, input: UpdateAppointmentInput): Promise<Appointment | null> {
     saving.value = true
     error.value = null
     const result = await service.update(id, input)
@@ -60,7 +59,7 @@ export const useAppointmentStore = defineStore('appointments', () => {
     return null
   }
 
-  async function setStatus(id: string, status: AppointmentStatus): Promise<boolean> {
+  async function setStatus(id: number, status: string): Promise<boolean> {
     const result = await service.setStatus(id, status)
     if (isOk(result)) {
       patchLocal(result.value)
@@ -70,7 +69,7 @@ export const useAppointmentStore = defineStore('appointments', () => {
     return false
   }
 
-  async function remove(id: string): Promise<boolean> {
+  async function remove(id: number): Promise<boolean> {
     const result = await service.remove(id)
     if (isOk(result)) {
       items.value = items.value.filter((a) => a.id !== id)

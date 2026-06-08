@@ -22,10 +22,10 @@ export const usePrescriptionStore = defineStore('prescriptions', () => {
   const error = ref<AppError | null>(null)
 
   async function fetchList(query: PrescriptionListQuery): Promise<void> {
-    if (!auth.userId) return
+    if (!auth.doctorId) return
     loading.value = true
     error.value = null
-    const result = await service.list(auth.userId, query)
+    const result = await service.list(auth.doctorId, query)
     loading.value = false
     if (isOk(result)) {
       items.value = result.value.items
@@ -36,10 +36,10 @@ export const usePrescriptionStore = defineStore('prescriptions', () => {
   }
 
   async function create(input: CreatePrescriptionInput): Promise<Prescription | null> {
-    if (!auth.userId) return null
+    if (!auth.doctorId) return null
     saving.value = true
     error.value = null
-    const result = await service.create(auth.userId, input)
+    const result = await service.create(auth.doctorId, input)
     saving.value = false
     if (isOk(result)) return result.value
     error.value = result.error

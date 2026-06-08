@@ -10,11 +10,11 @@ import type {
 
 export interface IPrescriptionRepository {
   list(
-    doctorId: string,
+    doctorId: number,
     query: PrescriptionListQuery,
   ): Promise<Result<PrescriptionListResult, AppError>>
   getById(id: string): Promise<Result<Prescription, AppError>>
-  create(doctorId: string, input: CreatePrescriptionInput): Promise<Result<Prescription, AppError>>
+  create(doctorId: number, input: CreatePrescriptionInput): Promise<Result<Prescription, AppError>>
   update(id: string, input: UpdatePrescriptionInput): Promise<Result<Prescription, AppError>>
   remove(id: string): Promise<Result<void, AppError>>
 }

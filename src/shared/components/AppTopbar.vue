@@ -31,9 +31,9 @@ async function signOut() {
       <NotificationBell />
       <div class="group relative">
         <button class="flex items-center gap-2 rounded-xl py-1 pl-1 pr-2 hover:bg-surface-muted">
-          <BaseAvatar :name="auth.profile?.fullName" :src="auth.profile?.avatarUrl" size="sm" />
+          <BaseAvatar :name="auth.profile?.name" :src="auth.profile?.image" size="sm" />
           <span class="hidden text-sm font-medium text-slate-700 sm:block">
-            {{ auth.profile?.fullName || 'Doctor' }}
+            {{ auth.profile?.name || 'Doctor' }}
           </span>
         </button>
         <div class="absolute right-0 mt-1 hidden w-44 rounded-xl border border-surface-border bg-white py-1 shadow-elevated group-hover:block">

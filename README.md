@@ -74,15 +74,26 @@ npm run dev
 
 ## Database
 
-SQL migrations live in `supabase/migrations/`:
+This dashboard is adapted to the **existing Shefaa production schema** (a
+patient-facing booking app) rather than a greenfield database.
 
-1. `0001_init_schema.sql` — tables, enums, indexes, constraints
-2. `0002_rls_policies.sql` — Row Level Security (doctor owns their rows)
-3. `0003_functions_triggers.sql` — `updated_at` triggers, auto profile
-   provisioning, and analytics RPCs (`dashboard_summary`, `appointments_trend`)
+Mapping:
+- **Appointments** → `bookings`
+- **Patients** (read-only) → `profiles`
+- **Doctor profile / Settings** → `Doctors` (a `user_id` column links each
+  doctor to an auth account — per-doctor login)
+- **Availability** → `doctor_availability`
+- **Payments** → `payments` (via the doctor's bookings)
 
-Tables: `profiles`, `patients`, `doctor_schedules`, `appointments`,
-`consultations`, `prescriptions`, `prescription_items`, `notifications`.
+The single migration `supabase/migrations/0001_doctor_dashboard_adaptation.sql`
+is **additive and safe** — it never alters existing data. It:
+1. adds `user_id` (+ a few profile columns) to `Doctors`,
+2. adds a `current_doctor_id()` helper,
+3. creates four NEW tables: `consultations`, `prescriptions`,
+   `prescription_items`, `notifications` (with RLS scoped to the doctor),
+4. adds analytics RPCs: `dashboard_summary`, `bookings_trend`, `doctor_patients`.
+
+Run it once in the Supabase SQL Editor (or `supabase db push`).
 
 ## Modules
 

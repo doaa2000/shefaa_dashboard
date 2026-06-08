@@ -1,6 +1,4 @@
-import type { ConsultationStatus } from '@/core/types/database.types'
-
-export type { ConsultationStatus }
+export type ConsultationStatus = 'draft' | 'finalized'
 
 export interface Vitals {
   bloodPressure?: string
@@ -13,10 +11,10 @@ export interface Vitals {
 
 export interface Consultation {
   id: string
-  doctorId: string
+  doctorId: number
   patientId: string
   patientName: string | null
-  appointmentId: string | null
+  bookingId: number | null
   chiefComplaint: string | null
   diagnosis: string | null
   symptoms: string[]
@@ -42,7 +40,7 @@ export interface ConsultationListResult {
 
 export interface CreateConsultationInput {
   patientId: string
-  appointmentId: string | null
+  bookingId: number | null
   chiefComplaint: string | null
   diagnosis: string | null
   symptoms: string[]

@@ -1,12 +1,13 @@
 import type { Tables, TablesInsert, TablesUpdate } from '@/core/types/database.types'
 import type {
   Consultation,
+  ConsultationStatus,
   CreateConsultationInput,
   UpdateConsultationInput,
   Vitals,
 } from '../domain/consultation.models'
 
-type ConsultationRow = Tables<'consultations'> & { patients?: { full_name: string } | null }
+type ConsultationRow = Tables<'consultations'> & { profiles?: { name: string | null } | null }
 
 function emptyToNull(value: string | null | undefined): string | null {
   return value && value.length > 0 ? value : null
@@ -17,14 +18,14 @@ export function toConsultation(row: ConsultationRow): Consultation {
     id: row.id,
     doctorId: row.doctor_id,
     patientId: row.patient_id,
-    patientName: row.patients?.full_name ?? null,
-    appointmentId: row.appointment_id,
+    patientName: row.profiles?.name ?? null,
+    bookingId: row.booking_id,
     chiefComplaint: row.chief_complaint,
     diagnosis: row.diagnosis,
     symptoms: row.symptoms,
     clinicalNotes: row.clinical_notes,
     vitals: (row.vitals as Vitals) ?? {},
-    status: row.status,
+    status: (row.status as ConsultationStatus) ?? 'draft',
     consultedAt: row.consulted_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -32,13 +33,13 @@ export function toConsultation(row: ConsultationRow): Consultation {
 }
 
 export function toInsert(
-  doctorId: string,
+  doctorId: number,
   input: CreateConsultationInput,
 ): TablesInsert<'consultations'> {
   return {
     doctor_id: doctorId,
     patient_id: input.patientId,
-    appointment_id: input.appointmentId,
+    booking_id: input.bookingId,
     chief_complaint: emptyToNull(input.chiefComplaint),
     diagnosis: emptyToNull(input.diagnosis),
     symptoms: input.symptoms,
@@ -52,7 +53,7 @@ export function toInsert(
 export function toUpdate(input: UpdateConsultationInput): TablesUpdate<'consultations'> {
   const patch: TablesUpdate<'consultations'> = {}
   if (input.patientId !== undefined) patch.patient_id = input.patientId
-  if (input.appointmentId !== undefined) patch.appointment_id = input.appointmentId
+  if (input.bookingId !== undefined) patch.booking_id = input.bookingId
   if (input.chiefComplaint !== undefined) patch.chief_complaint = emptyToNull(input.chiefComplaint)
   if (input.diagnosis !== undefined) patch.diagnosis = emptyToNull(input.diagnosis)
   if (input.symptoms !== undefined) patch.symptoms = input.symptoms

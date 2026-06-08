@@ -6,32 +6,32 @@ import type {
   Appointment,
   AppointmentListQuery,
   AppointmentListResult,
-  AppointmentStatus,
   CreateAppointmentInput,
   UpdateAppointmentInput,
 } from '../domain/appointment.models'
 import { toAppointment, toInsert, toUpdate } from './appointment.mapper'
 
-const SELECT_WITH_PATIENT = '*, patients(full_name)'
+const SELECT = '*, profiles(name)'
 
 export class SupabaseAppointmentRepository implements IAppointmentRepository {
   constructor(private readonly client: AppSupabaseClient) {}
 
   async list(
-    doctorId: string,
+    doctorId: number,
     query: AppointmentListQuery,
   ): Promise<Result<AppointmentListResult, AppError>> {
     try {
       let q = this.client
-        .from('appointments')
-        .select(SELECT_WITH_PATIENT, { count: 'exact' })
+        .from('bookings')
+        .select(SELECT, { count: 'exact' })
         .eq('doctor_id', doctorId)
-        .order('scheduled_at', { ascending: true })
+        .order('booked_date', { ascending: true })
+        .order('start_time', { ascending: true })
         .range(query.from, query.to)
 
       if (query.status) q = q.eq('status', query.status)
-      if (query.fromDate) q = q.gte('scheduled_at', query.fromDate)
-      if (query.toDate) q = q.lte('scheduled_at', query.toDate)
+      if (query.fromDate) q = q.gte('booked_date', query.fromDate)
+      if (query.toDate) q = q.lte('booked_date', query.toDate)
 
       const { data, error, count } = await q
       if (error) return err(normalizeError(error))
@@ -41,13 +41,9 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     }
   }
 
-  async getById(id: string): Promise<Result<Appointment, AppError>> {
+  async getById(id: number): Promise<Result<Appointment, AppError>> {
     try {
-      const { data, error } = await this.client
-        .from('appointments')
-        .select(SELECT_WITH_PATIENT)
-        .eq('id', id)
-        .single()
+      const { data, error } = await this.client.from('bookings').select(SELECT).eq('id', id).single()
       if (error) return err(normalizeError(error))
       return ok(toAppointment(data))
     } catch (e) {
@@ -56,14 +52,14 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
   }
 
   async create(
-    doctorId: string,
+    doctorId: number,
     input: CreateAppointmentInput,
   ): Promise<Result<Appointment, AppError>> {
     try {
       const { data, error } = await this.client
-        .from('appointments')
+        .from('bookings')
         .insert(toInsert(doctorId, input))
-        .select(SELECT_WITH_PATIENT)
+        .select(SELECT)
         .single()
       if (error) return err(normalizeError(error))
       return ok(toAppointment(data))
@@ -72,13 +68,13 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     }
   }
 
-  async update(id: string, input: UpdateAppointmentInput): Promise<Result<Appointment, AppError>> {
+  async update(id: number, input: UpdateAppointmentInput): Promise<Result<Appointment, AppError>> {
     try {
       const { data, error } = await this.client
-        .from('appointments')
+        .from('bookings')
         .update(toUpdate(input))
         .eq('id', id)
-        .select(SELECT_WITH_PATIENT)
+        .select(SELECT)
         .single()
       if (error) return err(normalizeError(error))
       return ok(toAppointment(data))
@@ -87,13 +83,13 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     }
   }
 
-  updateStatus(id: string, status: AppointmentStatus): Promise<Result<Appointment, AppError>> {
+  updateStatus(id: number, status: string): Promise<Result<Appointment, AppError>> {
     return this.update(id, { status })
   }
 
-  async remove(id: string): Promise<Result<void, AppError>> {
+  async remove(id: number): Promise<Result<void, AppError>> {
     try {
-      const { error } = await this.client.from('appointments').delete().eq('id', id)
+      const { error } = await this.client.from('bookings').delete().eq('id', id)
       if (error) return err(normalizeError(error))
       return ok(undefined)
     } catch (e) {

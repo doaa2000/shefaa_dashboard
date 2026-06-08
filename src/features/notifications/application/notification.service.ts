@@ -6,7 +6,7 @@ import type { AppNotification, NotificationListResult } from '../domain/notifica
 export class NotificationService {
   constructor(private readonly repo: INotificationRepository) {}
 
-  list(doctorId: string, limit?: number): Promise<Result<NotificationListResult, AppError>> {
+  list(doctorId: number, limit?: number): Promise<Result<NotificationListResult, AppError>> {
     return this.repo.list(doctorId, limit)
   }
 
@@ -14,7 +14,7 @@ export class NotificationService {
     return this.repo.markAsRead(id)
   }
 
-  markAllAsRead(doctorId: string): Promise<Result<void, AppError>> {
+  markAllAsRead(doctorId: number): Promise<Result<void, AppError>> {
     return this.repo.markAllAsRead(doctorId)
   }
 
@@ -22,7 +22,7 @@ export class NotificationService {
     return this.repo.remove(id)
   }
 
-  subscribe(doctorId: string, onInsert: (n: AppNotification) => void): () => void {
+  subscribe(doctorId: number, onInsert: (n: AppNotification) => void): () => void {
     return this.repo.subscribe(doctorId, onInsert)
   }
 }

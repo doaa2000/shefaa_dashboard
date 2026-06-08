@@ -4,89 +4,92 @@ import { type AppError, normalizeError } from '@/core/errors'
 import type { Tables } from '@/core/types/database.types'
 import type { IScheduleRepository } from '../domain/schedule.repository'
 import type {
-  CreateScheduleInput,
-  DoctorSchedule,
-  UpdateScheduleInput,
+  AvailabilitySlot,
+  CreateAvailabilityInput,
+  UpdateAvailabilityInput,
 } from '../domain/schedule.models'
 
-function toSchedule(row: Tables<'doctor_schedules'>): DoctorSchedule {
+function toSlot(row: Tables<'doctor_availability'>): AvailabilitySlot {
   return {
     id: row.id,
-    doctorId: row.doctor_id,
-    weekday: row.weekday,
+    doctorId: row.doctor_id ?? 0,
+    date: row.date,
     startTime: row.start_time,
     endTime: row.end_time,
-    slotDurationMinutes: row.slot_duration_minutes,
-    isActive: row.is_active,
+    session: row.session,
+    isActive: row.is_active ?? true,
   }
 }
 
 export class SupabaseScheduleRepository implements IScheduleRepository {
   constructor(private readonly client: AppSupabaseClient) {}
 
-  async list(doctorId: string): Promise<Result<DoctorSchedule[], AppError>> {
+  async list(doctorId: number): Promise<Result<AvailabilitySlot[], AppError>> {
     try {
       const { data, error } = await this.client
-        .from('doctor_schedules')
+        .from('doctor_availability')
         .select('*')
         .eq('doctor_id', doctorId)
-        .order('weekday', { ascending: true })
+        .order('date', { ascending: true })
         .order('start_time', { ascending: true })
       if (error) return err(normalizeError(error))
-      return ok(data.map(toSchedule))
+      return ok(data.map(toSlot))
     } catch (e) {
       return err(normalizeError(e))
     }
   }
 
   async create(
-    doctorId: string,
-    input: CreateScheduleInput,
-  ): Promise<Result<DoctorSchedule, AppError>> {
+    doctorId: number,
+    input: CreateAvailabilityInput,
+  ): Promise<Result<AvailabilitySlot, AppError>> {
     try {
       const { data, error } = await this.client
-        .from('doctor_schedules')
+        .from('doctor_availability')
         .insert({
           doctor_id: doctorId,
-          weekday: input.weekday,
+          date: input.date,
           start_time: input.startTime,
           end_time: input.endTime,
-          slot_duration_minutes: input.slotDurationMinutes,
+          session: input.session,
           is_active: input.isActive,
         })
         .select('*')
         .single()
       if (error) return err(normalizeError(error))
-      return ok(toSchedule(data))
+      return ok(toSlot(data))
     } catch (e) {
       return err(normalizeError(e))
     }
   }
 
-  async update(id: string, input: UpdateScheduleInput): Promise<Result<DoctorSchedule, AppError>> {
+  async update(
+    id: number,
+    input: UpdateAvailabilityInput,
+  ): Promise<Result<AvailabilitySlot, AppError>> {
     try {
       const { data, error } = await this.client
-        .from('doctor_schedules')
+        .from('doctor_availability')
         .update({
-          weekday: input.weekday,
+          date: input.date,
           start_time: input.startTime,
           end_time: input.endTime,
-          slot_duration_minutes: input.slotDurationMinutes,
+          session: input.session,
           is_active: input.isActive,
         })
         .eq('id', id)
         .select('*')
         .single()
       if (error) return err(normalizeError(error))
-      return ok(toSchedule(data))
+      return ok(toSlot(data))
     } catch (e) {
       return err(normalizeError(e))
     }
   }
 
-  async remove(id: string): Promise<Result<void, AppError>> {
+  async remove(id: number): Promise<Result<void, AppError>> {
     try {
-      const { error } = await this.client.from('doctor_schedules').delete().eq('id', id)
+      const { error } = await this.client.from('doctor_availability').delete().eq('id', id)
       if (error) return err(normalizeError(error))
       return ok(undefined)
     } catch (e) {

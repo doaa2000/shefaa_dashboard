@@ -13,7 +13,7 @@ export class PrescriptionService {
   constructor(private readonly repo: IPrescriptionRepository) {}
 
   list(
-    doctorId: string,
+    doctorId: number,
     query: PrescriptionListQuery,
   ): Promise<Result<PrescriptionListResult, AppError>> {
     return this.repo.list(doctorId, query)
@@ -24,7 +24,7 @@ export class PrescriptionService {
   }
 
   create(
-    doctorId: string,
+    doctorId: number,
     input: CreatePrescriptionInput,
   ): Promise<Result<Prescription, AppError>> {
     return this.repo.create(doctorId, input)

@@ -1,10 +1,8 @@
-import type { NotificationType } from '@/core/types/database.types'
-
-export type { NotificationType }
+export type NotificationType = 'appointment' | 'system' | 'message' | 'reminder'
 
 export interface AppNotification {
   id: string
-  doctorId: string
+  doctorId: number
   type: NotificationType
   title: string
   body: string | null

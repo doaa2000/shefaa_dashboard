@@ -1,4 +1,4 @@
-/** Domain models for authentication & the doctor profile. */
+/** Domain models for authentication & the doctor profile (the Doctors row). */
 
 export interface AuthUser {
   id: string
@@ -11,19 +11,24 @@ export interface Session {
   expiresAt: number | null
 }
 
+/** The authenticated doctor — backed by a row in the `Doctors` table. */
 export interface DoctorProfile {
-  id: string
-  email: string
-  fullName: string
+  id: number
+  userId: string | null
+  name: string
+  email: string | null
   phone: string | null
-  avatarUrl: string | null
-  specialty: string | null
+  title: string | null
+  specialization: string | null
+  specialtyId: number | null
+  clinicId: number | null
   bio: string | null
   licenseNumber: string | null
-  clinicName: string | null
-  timezone: string
-  createdAt: string
-  updatedAt: string
+  image: string | null
+  consultationFee: number | null
+  location: string | null
+  rating: number | null
+  waitingTime: number | null
 }
 
 export interface Credentials {
@@ -34,3 +39,18 @@ export interface Credentials {
 export interface RegisterPayload extends Credentials {
   fullName: string
 }
+
+export type DoctorProfilePatch = Partial<
+  Pick<
+    DoctorProfile,
+    | 'name'
+    | 'phone'
+    | 'title'
+    | 'specialization'
+    | 'bio'
+    | 'licenseNumber'
+    | 'image'
+    | 'consultationFee'
+    | 'location'
+  >
+>

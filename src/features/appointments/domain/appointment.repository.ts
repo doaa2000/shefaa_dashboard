@@ -4,19 +4,18 @@ import type {
   Appointment,
   AppointmentListQuery,
   AppointmentListResult,
-  AppointmentStatus,
   CreateAppointmentInput,
   UpdateAppointmentInput,
 } from './appointment.models'
 
 export interface IAppointmentRepository {
   list(
-    doctorId: string,
+    doctorId: number,
     query: AppointmentListQuery,
   ): Promise<Result<AppointmentListResult, AppError>>
-  getById(id: string): Promise<Result<Appointment, AppError>>
-  create(doctorId: string, input: CreateAppointmentInput): Promise<Result<Appointment, AppError>>
-  update(id: string, input: UpdateAppointmentInput): Promise<Result<Appointment, AppError>>
-  updateStatus(id: string, status: AppointmentStatus): Promise<Result<Appointment, AppError>>
-  remove(id: string): Promise<Result<void, AppError>>
+  getById(id: number): Promise<Result<Appointment, AppError>>
+  create(doctorId: number, input: CreateAppointmentInput): Promise<Result<Appointment, AppError>>
+  update(id: number, input: UpdateAppointmentInput): Promise<Result<Appointment, AppError>>
+  updateStatus(id: number, status: string): Promise<Result<Appointment, AppError>>
+  remove(id: number): Promise<Result<void, AppError>>
 }

@@ -3,7 +3,13 @@ import { defineStore } from 'pinia'
 import { container } from '@/app/providers/container'
 import { isOk } from '@/core/result'
 import type { AppError } from '@/core/errors'
-import type { Credentials, DoctorProfile, RegisterPayload, Session } from '../domain/auth.models'
+import type {
+  Credentials,
+  DoctorProfile,
+  DoctorProfilePatch,
+  RegisterPayload,
+  Session,
+} from '../domain/auth.models'
 
 export const useAuthStore = defineStore('auth', () => {
   const service = container.authService
@@ -16,6 +22,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => session.value !== null)
   const userId = computed(() => session.value?.user.id ?? null)
+  /** The Doctors.id used to scope all dashboard data. */
+  const doctorId = computed(() => profile.value?.id ?? null)
 
   let unsubscribe: (() => void) | null = null
 
@@ -26,7 +34,6 @@ export const useAuthStore = defineStore('auth', () => {
       session.value = result.value
       if (result.value) await loadProfile()
     }
-    // React to token refresh / sign-out happening elsewhere.
     unsubscribe ??= service.observe((next) => {
       session.value = next
       if (!next) profile.value = null
@@ -35,8 +42,12 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function loadProfile(): Promise<void> {
-    if (!userId.value) return
-    const result = await service.loadProfile(userId.value)
+    const uid = userId.value
+    if (!uid) return
+    const result = await service.ensureProfile(uid, {
+      name: session.value?.user.email?.split('@')[0] ?? 'Doctor',
+      email: session.value?.user.email ?? '',
+    })
     if (isOk(result)) profile.value = result.value
   }
 
@@ -58,14 +69,22 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true
     error.value = null
     const result = await service.register(payload)
-    loading.value = false
-    if (isOk(result)) {
-      session.value = result.value
-      if (result.value) await loadProfile()
-      return true
+    if (!isOk(result)) {
+      loading.value = false
+      error.value = result.error
+      return false
     }
-    error.value = result.error
-    return false
+    session.value = result.value
+    // Session is null only when email confirmation is required.
+    if (result.value) {
+      const ensured = await service.ensureProfile(result.value.user.id, {
+        name: payload.fullName,
+        email: payload.email,
+      })
+      if (isOk(ensured)) profile.value = ensured.value
+    }
+    loading.value = false
+    return true
   }
 
   async function signOut(): Promise<void> {
@@ -74,13 +93,11 @@ export const useAuthStore = defineStore('auth', () => {
     profile.value = null
   }
 
-  async function updateProfile(
-    patch: Partial<Omit<DoctorProfile, 'id' | 'email' | 'createdAt' | 'updatedAt'>>,
-  ): Promise<boolean> {
-    if (!userId.value) return false
+  async function updateProfile(patch: DoctorProfilePatch): Promise<boolean> {
+    if (!doctorId.value) return false
     loading.value = true
     error.value = null
-    const result = await service.updateProfile(userId.value, patch)
+    const result = await service.updateProfile(doctorId.value, patch)
     loading.value = false
     if (isOk(result)) {
       profile.value = result.value
@@ -98,6 +115,7 @@ export const useAuthStore = defineStore('auth', () => {
     error,
     isAuthenticated,
     userId,
+    doctorId,
     initialize,
     loadProfile,
     signIn,

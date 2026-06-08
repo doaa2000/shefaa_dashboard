@@ -1,39 +1,17 @@
-import type { GenderType } from '@/core/types/database.types'
-
-export type Gender = GenderType
-
+/**
+ * In the Shefaa schema a "patient" is a row in `profiles` (an app user who
+ * books appointments). The doctor dashboard treats patients as read-only —
+ * patients own their own accounts.
+ */
 export interface Patient {
   id: string
-  doctorId: string
-  fullName: string
-  email: string | null
+  name: string
   phone: string | null
-  dateOfBirth: string | null
-  gender: Gender
-  bloodType: string | null
-  address: string | null
-  medicalHistory: string | null
-  allergies: string[]
-  isActive: boolean
-  createdAt: string
-  updatedAt: string
-}
-
-export interface PatientListQuery {
-  search?: string
-  isActive?: boolean
-  from: number
-  to: number
+  gender: string | null
+  birthDate: string | null
 }
 
 export interface PatientListResult {
   items: Patient[]
   total: number
 }
-
-export type CreatePatientInput = Omit<
-  Patient,
-  'id' | 'doctorId' | 'createdAt' | 'updatedAt' | 'isActive'
-> & { isActive?: boolean }
-
-export type UpdatePatientInput = Partial<CreatePatientInput>

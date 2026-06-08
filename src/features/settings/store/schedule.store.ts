@@ -4,32 +4,32 @@ import { container } from '@/app/providers/container'
 import { isOk } from '@/core/result'
 import type { AppError } from '@/core/errors'
 import { useAuthStore } from '@/features/auth/store/auth.store'
-import type { CreateScheduleInput, DoctorSchedule } from '../domain/schedule.models'
+import type { AvailabilitySlot, CreateAvailabilityInput } from '../domain/schedule.models'
 
 export const useScheduleStore = defineStore('schedules', () => {
   const service = container.scheduleService
   const auth = useAuthStore()
 
-  const items = ref<DoctorSchedule[]>([])
+  const items = ref<AvailabilitySlot[]>([])
   const loading = ref(false)
   const saving = ref(false)
   const error = ref<AppError | null>(null)
 
   async function fetchList(): Promise<void> {
-    if (!auth.userId) return
+    if (!auth.doctorId) return
     loading.value = true
     error.value = null
-    const result = await service.list(auth.userId)
+    const result = await service.list(auth.doctorId)
     loading.value = false
     if (isOk(result)) items.value = result.value
     else error.value = result.error
   }
 
-  async function create(input: CreateScheduleInput): Promise<boolean> {
-    if (!auth.userId) return false
+  async function create(input: CreateAvailabilityInput): Promise<boolean> {
+    if (!auth.doctorId) return false
     saving.value = true
     error.value = null
-    const result = await service.create(auth.userId, input)
+    const result = await service.create(auth.doctorId, input)
     saving.value = false
     if (isOk(result)) {
       items.value = [...items.value, result.value]
@@ -39,7 +39,7 @@ export const useScheduleStore = defineStore('schedules', () => {
     return false
   }
 
-  async function remove(id: string): Promise<boolean> {
+  async function remove(id: number): Promise<boolean> {
     const result = await service.remove(id)
     if (isOk(result)) {
       items.value = items.value.filter((s) => s.id !== id)

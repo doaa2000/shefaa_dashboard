@@ -1,11 +1,11 @@
 import { z } from 'zod'
 
-export const scheduleSchema = z
+export const availabilitySchema = z
   .object({
-    weekday: z.enum(['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']),
+    date: z.string().min(1, 'Pick a date'),
     startTime: z.string().min(1, 'Start time required'),
     endTime: z.string().min(1, 'End time required'),
-    slotDurationMinutes: z.coerce.number().int().min(5).max(240),
+    session: z.string().min(1, 'Select a session'),
     isActive: z.boolean().default(true),
   })
   .refine((d) => d.endTime > d.startTime, {
@@ -13,16 +13,17 @@ export const scheduleSchema = z
     path: ['endTime'],
   })
 
-export type ScheduleFormValues = z.infer<typeof scheduleSchema>
+export type AvailabilityFormValues = z.infer<typeof availabilitySchema>
 
 export const profileSchema = z.object({
-  fullName: z.string().min(2, 'Full name is required'),
+  name: z.string().min(2, 'Name is required'),
+  title: z.string().max(120).or(z.literal('')).nullable(),
+  specialization: z.string().max(120).or(z.literal('')).nullable(),
   phone: z.string().max(30).or(z.literal('')).nullable(),
-  specialty: z.string().max(120).or(z.literal('')).nullable(),
   licenseNumber: z.string().max(60).or(z.literal('')).nullable(),
-  clinicName: z.string().max(120).or(z.literal('')).nullable(),
+  location: z.string().max(160).or(z.literal('')).nullable(),
+  consultationFee: z.coerce.number().min(0).nullable(),
   bio: z.string().max(1000).or(z.literal('')).nullable(),
-  timezone: z.string().min(1),
 })
 
 export type ProfileFormValues = z.infer<typeof profileSchema>

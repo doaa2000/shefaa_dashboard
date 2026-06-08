@@ -10,11 +10,11 @@ import type {
 
 export interface IConsultationRepository {
   list(
-    doctorId: string,
+    doctorId: number,
     query: ConsultationListQuery,
   ): Promise<Result<ConsultationListResult, AppError>>
   getById(id: string): Promise<Result<Consultation, AppError>>
-  create(doctorId: string, input: CreateConsultationInput): Promise<Result<Consultation, AppError>>
+  create(doctorId: number, input: CreateConsultationInput): Promise<Result<Consultation, AppError>>
   update(id: string, input: UpdateConsultationInput): Promise<Result<Consultation, AppError>>
   remove(id: string): Promise<Result<void, AppError>>
 }

@@ -2,11 +2,17 @@ import type { Result } from '@/core/result'
 import { err, ok } from '@/core/result'
 import { AppError } from '@/core/errors'
 import type { IAuthRepository } from '../domain/auth.repository'
-import type { Credentials, DoctorProfile, RegisterPayload, Session } from '../domain/auth.models'
+import type {
+  Credentials,
+  DoctorProfile,
+  DoctorProfilePatch,
+  RegisterPayload,
+  Session,
+} from '../domain/auth.models'
 
 /**
  * Application service orchestrating authentication workflows. Depends only on
- * the IAuthRepository abstraction (DIP) — no Supabase imports here.
+ * the IAuthRepository abstraction (DIP).
  */
 export class AuthService {
   constructor(private readonly repo: IAuthRepository) {}
@@ -19,7 +25,7 @@ export class AuthService {
     return this.repo.signIn(credentials)
   }
 
-  async register(payload: RegisterPayload): Promise<Result<Session | null, AppError>> {
+  register(payload: RegisterPayload): Promise<Result<Session | null, AppError>> {
     return this.repo.signUp(payload)
   }
 
@@ -27,21 +33,31 @@ export class AuthService {
     return this.repo.signOut()
   }
 
-  async requestPasswordReset(email: string): Promise<Result<void, AppError>> {
-    if (!email) return err(AppError.validation('Email is required.'))
+  requestPasswordReset(email: string): Promise<Result<void, AppError>> {
+    if (!email) return Promise.resolve(err(AppError.validation('Email is required.')))
     return this.repo.sendPasswordReset(email)
   }
 
-  loadProfile(userId: string): Promise<Result<DoctorProfile, AppError>> {
+  loadProfile(userId: string): Promise<Result<DoctorProfile | null, AppError>> {
     return this.repo.getProfile(userId)
   }
 
-  async updateProfile(
+  /**
+   * Returns the doctor's profile, creating the Doctors row on first login if it
+   * doesn't exist yet (e.g. right after registration).
+   */
+  async ensureProfile(
     userId: string,
-    patch: Partial<Omit<DoctorProfile, 'id' | 'email' | 'createdAt' | 'updatedAt'>>,
+    fallback: { name: string; email: string },
   ): Promise<Result<DoctorProfile, AppError>> {
-    const result = await this.repo.updateProfile(userId, patch)
-    return result.ok ? ok(result.value) : err(result.error)
+    const existing = await this.repo.getProfile(userId)
+    if (!existing.ok) return err(existing.error)
+    if (existing.value) return ok(existing.value)
+    return this.repo.createProfile(userId, fallback)
+  }
+
+  updateProfile(doctorId: number, patch: DoctorProfilePatch): Promise<Result<DoctorProfile, AppError>> {
+    return this.repo.updateProfile(doctorId, patch)
   }
 
   observe(callback: (session: Session | null) => void): () => void {

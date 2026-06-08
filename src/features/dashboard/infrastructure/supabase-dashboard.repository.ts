@@ -11,6 +11,7 @@ interface SummaryRow {
   consultations_this_month: number
   active_prescriptions: number
   unread_notifications: number
+  revenue_this_month: number
 }
 
 export class SupabaseDashboardRepository implements IDashboardRepository {
@@ -28,6 +29,7 @@ export class SupabaseDashboardRepository implements IDashboardRepository {
         consultationsThisMonth: row.consultations_this_month,
         activePrescriptions: row.active_prescriptions,
         unreadNotifications: row.unread_notifications,
+        revenueThisMonth: Number(row.revenue_this_month ?? 0),
       })
     } catch (e) {
       return err(normalizeError(e))

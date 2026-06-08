@@ -13,7 +13,7 @@ export class ConsultationService {
   constructor(private readonly repo: IConsultationRepository) {}
 
   list(
-    doctorId: string,
+    doctorId: number,
     query: ConsultationListQuery,
   ): Promise<Result<ConsultationListResult, AppError>> {
     return this.repo.list(doctorId, query)
@@ -24,7 +24,7 @@ export class ConsultationService {
   }
 
   create(
-    doctorId: string,
+    doctorId: number,
     input: CreateConsultationInput,
   ): Promise<Result<Consultation, AppError>> {
     return this.repo.create(doctorId, input)

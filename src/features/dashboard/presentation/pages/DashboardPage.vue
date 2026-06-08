@@ -10,7 +10,7 @@ const store = useDashboardStore()
 const auth = useAuthStore()
 const { summary, loading, error } = storeToRefs(store)
 
-const greetingName = computed(() => auth.profile?.fullName || 'Doctor')
+const greetingName = computed(() => auth.profile?.name || 'Doctor')
 
 onMounted(() => store.fetchSummary())
 </script>
@@ -36,7 +36,7 @@ onMounted(() => store.fetchSummary())
       <StatCard label="Upcoming appointments" :value="summary.appointmentsUpcoming" tone="amber" />
       <StatCard label="Consultations this month" :value="summary.consultationsThisMonth" tone="emerald" />
       <StatCard label="Active prescriptions" :value="summary.activePrescriptions" tone="primary" />
-      <StatCard label="Unread notifications" :value="summary.unreadNotifications" tone="amber" />
+      <StatCard label="Revenue this month" :value="`EGP ${summary.revenueThisMonth.toLocaleString()}`" tone="emerald" />
     </div>
   </div>
 </template>

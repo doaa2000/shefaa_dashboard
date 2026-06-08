@@ -18,18 +18,18 @@ export const useNotificationStore = defineStore('notifications', () => {
   const unreadCount = computed(() => items.value.filter((n) => !n.isRead).length)
 
   async function fetch(): Promise<void> {
-    if (!auth.userId) return
+    if (!auth.doctorId) return
     loading.value = true
     error.value = null
-    const result = await service.list(auth.userId)
+    const result = await service.list(auth.doctorId)
     loading.value = false
     if (isOk(result)) items.value = result.value.items
     else error.value = result.error
   }
 
   function startRealtime(): void {
-    if (!auth.userId || unsubscribe) return
-    unsubscribe = service.subscribe(auth.userId, (n) => {
+    if (!auth.doctorId || unsubscribe) return
+    unsubscribe = service.subscribe(auth.doctorId, (n) => {
       items.value = [n, ...items.value]
     })
   }
@@ -45,8 +45,8 @@ export const useNotificationStore = defineStore('notifications', () => {
   }
 
   async function markAllAsRead(): Promise<void> {
-    if (!auth.userId) return
-    const result = await service.markAllAsRead(auth.userId)
+    if (!auth.doctorId) return
+    const result = await service.markAllAsRead(auth.doctorId)
     if (isOk(result)) items.value = items.value.map((n) => ({ ...n, isRead: true }))
   }
 

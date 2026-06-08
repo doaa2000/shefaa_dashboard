@@ -4,38 +4,26 @@ import { storeToRefs } from 'pinia'
 import { useAppointmentStore } from '../../store/appointment.store'
 import { usePagination } from '@/shared/composables/usePagination'
 import { useToast } from '@/shared/composables/useToast'
-import { formatDateTime } from '@/shared/utils/datetime'
-import {
-  STATUS_OPTIONS,
-  STATUS_TONE,
-  statusLabel,
-  typeLabel,
-} from '../../domain/appointment.labels'
+import { formatDate } from '@/shared/utils/datetime'
+import { STATUS_OPTIONS, statusLabel, statusTone } from '../../domain/appointment.labels'
 import AppointmentFormModal from '../components/AppointmentFormModal.vue'
 import type { AppointmentFormValues } from '../../domain/appointment.schema'
-import type { Appointment, AppointmentStatus } from '../../domain/appointment.models'
-import {
-  BaseBadge,
-  BaseButton,
-  BaseSelect,
-  BasePagination,
-  BaseTable,
-  type Column,
-} from '@/shared/ui'
+import type { Appointment } from '../../domain/appointment.models'
+import { BaseBadge, BaseButton, BaseSelect, BasePagination, BaseTable, type Column } from '@/shared/ui'
 
 const store = useAppointmentStore()
 const toast = useToast()
 const { items, total, loading, saving } = storeToRefs(store)
 
 const pagination = usePagination({ pageSize: 10 })
-const statusFilter = ref<AppointmentStatus | ''>('')
+const statusFilter = ref<string>('')
 const modalOpen = ref(false)
 const editing = ref<Appointment | null>(null)
 
 const columns: Column[] = [
-  { key: 'scheduledAt', label: 'When' },
+  { key: 'bookedDate', label: 'Date' },
+  { key: 'time', label: 'Time' },
   { key: 'patientName', label: 'Patient' },
-  { key: 'type', label: 'Type' },
   { key: 'status', label: 'Status', align: 'center' },
   { key: 'actions', label: '', align: 'right' },
 ]
@@ -50,9 +38,7 @@ async function load() {
 }
 
 onMounted(load)
-watch([() => pagination.page.value, statusFilter], () => {
-  void load()
-})
+watch([() => pagination.page.value, statusFilter], load)
 
 function openCreate() {
   editing.value = null
@@ -64,17 +50,9 @@ function openEdit(a: Appointment) {
 }
 
 async function onSubmit(values: AppointmentFormValues) {
-  const payload = {
-    patientId: values.patientId,
-    scheduledAt: values.scheduledAt,
-    durationMinutes: values.durationMinutes,
-    type: values.type,
-    reason: values.reason ?? null,
-    notes: values.notes ?? null,
-  }
   const saved = editing.value
-    ? await store.update(editing.value.id, payload)
-    : await store.create(payload)
+    ? await store.update(editing.value.id, values)
+    : await store.create(values)
   if (saved) {
     toast.success(editing.value ? 'Appointment updated' : 'Appointment created')
     modalOpen.value = false
@@ -84,9 +62,8 @@ async function onSubmit(values: AppointmentFormValues) {
   }
 }
 
-async function changeStatus(a: Appointment, status: AppointmentStatus) {
-  const ok = await store.setStatus(a.id, status)
-  if (ok) toast.success('Status updated', statusLabel(status))
+async function changeStatus(a: Appointment, status: string) {
+  if (await store.setStatus(a.id, status)) toast.success('Status updated', statusLabel(status))
 }
 </script>
 
@@ -95,7 +72,7 @@ async function changeStatus(a: Appointment, status: AppointmentStatus) {
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
         <h1 class="text-xl font-semibold text-slate-900">Appointments</h1>
-        <p class="text-sm text-slate-500">Schedule and track your appointments</p>
+        <p class="text-sm text-slate-500">Your bookings</p>
       </div>
       <BaseButton @click="openCreate">+ New appointment</BaseButton>
     </div>
@@ -108,28 +85,21 @@ async function changeStatus(a: Appointment, status: AppointmentStatus) {
       />
     </div>
 
-    <BaseTable
-      :columns="columns"
-      :rows="items"
-      :loading="loading"
-      empty-title="No appointments"
-      empty-description="Create your first appointment."
-    >
-      <template #cell:scheduledAt="{ row }">
-        <span class="font-medium text-slate-800">{{ formatDateTime(row.scheduledAt) }}</span>
-        <span class="block text-xs text-slate-400">{{ row.durationMinutes }} min</span>
+    <BaseTable :columns="columns" :rows="items" :loading="loading" empty-title="No appointments" empty-description="Create your first booking.">
+      <template #cell:bookedDate="{ row }">
+        <span class="font-medium text-slate-800">{{ formatDate(row.bookedDate) }}</span>
       </template>
+      <template #cell:time="{ row }">{{ row.startTime?.slice(0, 5) }} – {{ row.endTime?.slice(0, 5) }}</template>
       <template #cell:patientName="{ row }">{{ row.patientName ?? '—' }}</template>
-      <template #cell:type="{ row }">{{ typeLabel(row.type) }}</template>
       <template #cell:status="{ row }">
-        <BaseBadge :tone="STATUS_TONE[row.status]">{{ statusLabel(row.status) }}</BaseBadge>
+        <BaseBadge :tone="statusTone(row.status)">{{ statusLabel(row.status) }}</BaseBadge>
       </template>
       <template #cell:actions="{ row }">
         <div class="flex items-center justify-end gap-2">
           <select
             class="rounded-lg border border-surface-border px-2 py-1 text-xs text-slate-600"
             :value="row.status"
-            @change="changeStatus(row, ($event.target as HTMLSelectElement).value as AppointmentStatus)"
+            @change="changeStatus(row, ($event.target as HTMLSelectElement).value)"
           >
             <option v-for="o in STATUS_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
           </select>

@@ -1,4 +1,4 @@
-<script setup lang="ts" generic="T extends { id: string }">
+<script setup lang="ts" generic="T extends { id: string | number }">
 import BaseSkeleton from './BaseSkeleton.vue'
 import BaseEmptyState from './BaseEmptyState.vue'
 

@@ -5,55 +5,40 @@ import type {
   UpdateAppointmentInput,
 } from '../domain/appointment.models'
 
-/** Row shape when joined with the patient name. */
-type AppointmentRowWithPatient = Tables<'appointments'> & {
-  patients?: { full_name: string } | null
-}
+type BookingRow = Tables<'bookings'> & { profiles?: { name: string | null } | null }
 
-function emptyToNull(value: string | null | undefined): string | null {
-  return value && value.length > 0 ? value : null
-}
-
-export function toAppointment(row: AppointmentRowWithPatient): Appointment {
+export function toAppointment(row: BookingRow): Appointment {
   return {
     id: row.id,
-    doctorId: row.doctor_id,
     patientId: row.patient_id,
-    patientName: row.patients?.full_name ?? null,
-    scheduledAt: row.scheduled_at,
-    durationMinutes: row.duration_minutes,
-    type: row.type,
-    status: row.status,
-    reason: row.reason,
-    notes: row.notes,
+    patientName: row.profiles?.name ?? null,
+    doctorId: row.doctor_id,
+    paymentId: row.payment_id,
+    bookedDate: row.booked_date,
+    startTime: row.start_time,
+    endTime: row.end_time,
+    status: row.status ?? 'pending',
     createdAt: row.created_at,
-    updatedAt: row.updated_at,
   }
 }
 
-export function toInsert(
-  doctorId: string,
-  input: CreateAppointmentInput,
-): TablesInsert<'appointments'> {
+export function toInsert(doctorId: number, input: CreateAppointmentInput): TablesInsert<'bookings'> {
   return {
     doctor_id: doctorId,
     patient_id: input.patientId,
-    scheduled_at: input.scheduledAt,
-    duration_minutes: input.durationMinutes,
-    type: input.type,
-    reason: emptyToNull(input.reason),
-    notes: emptyToNull(input.notes),
+    booked_date: input.bookedDate,
+    start_time: input.startTime,
+    end_time: input.endTime,
+    status: input.status,
   }
 }
 
-export function toUpdate(input: UpdateAppointmentInput): TablesUpdate<'appointments'> {
-  const patch: TablesUpdate<'appointments'> = {}
+export function toUpdate(input: UpdateAppointmentInput): TablesUpdate<'bookings'> {
+  const patch: TablesUpdate<'bookings'> = {}
   if (input.patientId !== undefined) patch.patient_id = input.patientId
-  if (input.scheduledAt !== undefined) patch.scheduled_at = input.scheduledAt
-  if (input.durationMinutes !== undefined) patch.duration_minutes = input.durationMinutes
-  if (input.type !== undefined) patch.type = input.type
-  if (input.reason !== undefined) patch.reason = emptyToNull(input.reason)
-  if (input.notes !== undefined) patch.notes = emptyToNull(input.notes)
+  if (input.bookedDate !== undefined) patch.booked_date = input.bookedDate
+  if (input.startTime !== undefined) patch.start_time = input.startTime
+  if (input.endTime !== undefined) patch.end_time = input.endTime
   if (input.status !== undefined) patch.status = input.status
   return patch
 }

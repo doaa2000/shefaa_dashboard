@@ -1,17 +1,9 @@
 import type { Result } from '@/core/result'
 import type { AppError } from '@/core/errors'
-import type {
-  CreatePatientInput,
-  Patient,
-  PatientListQuery,
-  PatientListResult,
-  UpdatePatientInput,
-} from './patient.models'
+import type { Patient } from './patient.models'
 
 export interface IPatientRepository {
-  list(doctorId: string, query: PatientListQuery): Promise<Result<PatientListResult, AppError>>
+  /** Patients who have booked with the current doctor (optionally filtered). */
+  listForDoctor(search?: string): Promise<Result<Patient[], AppError>>
   getById(id: string): Promise<Result<Patient, AppError>>
-  create(doctorId: string, input: CreatePatientInput): Promise<Result<Patient, AppError>>
-  update(id: string, input: UpdatePatientInput): Promise<Result<Patient, AppError>>
-  remove(id: string): Promise<Result<void, AppError>>
 }

@@ -1,8 +1,12 @@
 import type { Tables } from '@/core/types/database.types'
-import type { Prescription, PrescriptionItem } from '../domain/prescription.models'
+import type {
+  Prescription,
+  PrescriptionItem,
+  PrescriptionStatus,
+} from '../domain/prescription.models'
 
 type PrescriptionRow = Tables<'prescriptions'> & {
-  patients?: { full_name: string } | null
+  profiles?: { name: string | null } | null
   prescription_items?: Tables<'prescription_items'>[] | null
 }
 
@@ -23,9 +27,9 @@ export function toPrescription(row: PrescriptionRow): Prescription {
     id: row.id,
     doctorId: row.doctor_id,
     patientId: row.patient_id,
-    patientName: row.patients?.full_name ?? null,
+    patientName: row.profiles?.name ?? null,
     consultationId: row.consultation_id,
-    status: row.status,
+    status: (row.status as PrescriptionStatus) ?? 'active',
     notes: row.notes,
     issuedAt: row.issued_at,
     items: (row.prescription_items ?? []).map(toItem),

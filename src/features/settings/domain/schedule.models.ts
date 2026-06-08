@@ -1,33 +1,26 @@
-import type { WeekdayType } from '@/core/types/database.types'
-
-export type Weekday = WeekdayType
-
-export interface DoctorSchedule {
-  id: string
-  doctorId: string
-  weekday: Weekday
-  startTime: string
-  endTime: string
-  slotDurationMinutes: number
+/** A date-specific availability slot, backed by `doctor_availability`. */
+export interface AvailabilitySlot {
+  id: number
+  doctorId: number
+  date: string
+  startTime: string | null
+  endTime: string | null
+  session: string | null
   isActive: boolean
 }
 
-export interface CreateScheduleInput {
-  weekday: Weekday
+export interface CreateAvailabilityInput {
+  date: string
   startTime: string
   endTime: string
-  slotDurationMinutes: number
+  session: string
   isActive: boolean
 }
 
-export type UpdateScheduleInput = Partial<CreateScheduleInput>
+export type UpdateAvailabilityInput = Partial<CreateAvailabilityInput>
 
-export const WEEKDAYS: { label: string; value: Weekday }[] = [
-  { label: 'Sunday', value: 'sun' },
-  { label: 'Monday', value: 'mon' },
-  { label: 'Tuesday', value: 'tue' },
-  { label: 'Wednesday', value: 'wed' },
-  { label: 'Thursday', value: 'thu' },
-  { label: 'Friday', value: 'fri' },
-  { label: 'Saturday', value: 'sat' },
+export const SESSION_OPTIONS: { label: string; value: string }[] = [
+  { label: 'Morning', value: 'morning' },
+  { label: 'Afternoon', value: 'afternoon' },
+  { label: 'Evening', value: 'evening' },
 ]

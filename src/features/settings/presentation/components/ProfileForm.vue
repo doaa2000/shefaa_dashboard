@@ -14,15 +14,16 @@ const { profile, loading } = storeToRefs(auth)
 
 const { defineField, handleSubmit, errors, resetForm } = useForm<ProfileFormValues>({
   validationSchema: toTypedSchema(profileSchema),
-  initialValues: { timezone: 'UTC' },
+  initialValues: { name: '' },
 })
 
-const [fullName, fullNameAttrs] = defineField('fullName')
+const [name, nameAttrs] = defineField('name')
+const [title, titleAttrs] = defineField('title')
+const [specialization, specAttrs] = defineField('specialization')
 const [phone, phoneAttrs] = defineField('phone')
-const [specialty, specialtyAttrs] = defineField('specialty')
 const [licenseNumber, licenseAttrs] = defineField('licenseNumber')
-const [clinicName, clinicAttrs] = defineField('clinicName')
-const [timezone, timezoneAttrs] = defineField('timezone')
+const [location, locationAttrs] = defineField('location')
+const [consultationFee, feeAttrs] = defineField('consultationFee')
 const [bio, bioAttrs] = defineField('bio')
 
 watch(
@@ -31,12 +32,13 @@ watch(
     if (!p) return
     resetForm({
       values: {
-        fullName: p.fullName,
+        name: p.name,
+        title: p.title ?? '',
+        specialization: p.specialization ?? '',
         phone: p.phone ?? '',
-        specialty: p.specialty ?? '',
         licenseNumber: p.licenseNumber ?? '',
-        clinicName: p.clinicName ?? '',
-        timezone: p.timezone,
+        location: p.location ?? '',
+        consultationFee: p.consultationFee ?? null,
         bio: p.bio ?? '',
       },
     })
@@ -54,23 +56,26 @@ const onSubmit = handleSubmit(async (values) => {
 <template>
   <BaseCard title="Profile" subtitle="Your professional details">
     <form class="grid grid-cols-1 gap-4 sm:grid-cols-2" @submit="onSubmit">
-      <FormField label="Full name" :error="errors.fullName" required>
-        <BaseInput v-model="fullName" v-bind="fullNameAttrs" :invalid="!!errors.fullName" />
+      <FormField label="Name" :error="errors.name" required>
+        <BaseInput v-model="name" v-bind="nameAttrs" :invalid="!!errors.name" />
+      </FormField>
+      <FormField label="Title" :error="errors.title">
+        <BaseInput v-model="title" v-bind="titleAttrs" placeholder="e.g. Consultant" />
+      </FormField>
+      <FormField label="Specialization" :error="errors.specialization">
+        <BaseInput v-model="specialization" v-bind="specAttrs" />
       </FormField>
       <FormField label="Phone" :error="errors.phone">
         <BaseInput v-model="phone" v-bind="phoneAttrs" />
       </FormField>
-      <FormField label="Specialty" :error="errors.specialty">
-        <BaseInput v-model="specialty" v-bind="specialtyAttrs" />
-      </FormField>
       <FormField label="License number" :error="errors.licenseNumber">
         <BaseInput v-model="licenseNumber" v-bind="licenseAttrs" />
       </FormField>
-      <FormField label="Clinic name" :error="errors.clinicName">
-        <BaseInput v-model="clinicName" v-bind="clinicAttrs" />
+      <FormField label="Location" :error="errors.location">
+        <BaseInput v-model="location" v-bind="locationAttrs" />
       </FormField>
-      <FormField label="Timezone" :error="errors.timezone">
-        <BaseInput v-model="timezone" v-bind="timezoneAttrs" />
+      <FormField label="Consultation fee" :error="errors.consultationFee">
+        <BaseInput v-model="consultationFee" v-bind="feeAttrs" type="number" />
       </FormField>
       <FormField class="sm:col-span-2" label="Bio" :error="errors.bio">
         <textarea

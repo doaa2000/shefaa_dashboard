@@ -11,19 +11,23 @@ export function toSession(session: SupabaseSession | null): Session | null {
   }
 }
 
-export function toDoctorProfile(row: Tables<'profiles'>): DoctorProfile {
+export function toDoctorProfile(row: Tables<'Doctors'>): DoctorProfile {
   return {
     id: row.id,
+    userId: row.user_id,
+    name: row.name,
     email: row.email,
-    fullName: row.full_name,
     phone: row.phone,
-    avatarUrl: row.avatar_url,
-    specialty: row.specialty,
+    title: row.title,
+    specialization: row.specialization,
+    specialtyId: row.specialty_id,
+    clinicId: row.clinic_id,
     bio: row.bio,
     licenseNumber: row.license_number,
-    clinicName: row.clinic_name,
-    timezone: row.timezone,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    image: row.image,
+    consultationFee: row.consultation_fee,
+    location: row.location,
+    rating: row.rating,
+    waitingTime: row.waiting_time,
   }
 }

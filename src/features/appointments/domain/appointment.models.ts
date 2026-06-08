@@ -1,25 +1,19 @@
-import type { AppointmentStatus, AppointmentType } from '@/core/types/database.types'
-
-export type { AppointmentStatus, AppointmentType }
-
+/** An appointment is a row in the `bookings` table. */
 export interface Appointment {
-  id: string
-  doctorId: string
+  id: number
   patientId: string
   patientName: string | null
-  scheduledAt: string
-  durationMinutes: number
-  type: AppointmentType
-  status: AppointmentStatus
-  reason: string | null
-  notes: string | null
-  createdAt: string
-  updatedAt: string
+  doctorId: number
+  paymentId: number | null
+  bookedDate: string
+  startTime: string
+  endTime: string
+  status: string
+  createdAt: string | null
 }
 
 export interface AppointmentListQuery {
-  search?: string
-  status?: AppointmentStatus
+  status?: string
   fromDate?: string
   toDate?: string
   from: number
@@ -33,13 +27,10 @@ export interface AppointmentListResult {
 
 export interface CreateAppointmentInput {
   patientId: string
-  scheduledAt: string
-  durationMinutes: number
-  type: AppointmentType
-  reason: string | null
-  notes: string | null
+  bookedDate: string
+  startTime: string
+  endTime: string
+  status: string
 }
 
-export type UpdateAppointmentInput = Partial<CreateAppointmentInput> & {
-  status?: AppointmentStatus
-}
+export type UpdateAppointmentInput = Partial<CreateAppointmentInput>

@@ -1,6 +1,4 @@
-import type { PrescriptionStatus } from '@/core/types/database.types'
-
-export type { PrescriptionStatus }
+export type PrescriptionStatus = 'active' | 'completed' | 'cancelled'
 
 export interface PrescriptionItem {
   id: string
@@ -14,7 +12,7 @@ export interface PrescriptionItem {
 
 export interface Prescription {
   id: string
-  doctorId: string
+  doctorId: number
   patientId: string
   patientName: string | null
   consultationId: string | null

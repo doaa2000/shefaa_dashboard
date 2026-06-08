@@ -12,7 +12,7 @@ import type {
 } from '../domain/prescription.models'
 import { toPrescription } from './prescription.mapper'
 
-const SELECT = '*, patients(full_name), prescription_items(*)'
+const SELECT = '*, profiles(name), prescription_items(*)'
 
 function emptyToNull(value: string | null | undefined): string | null {
   return value && value.length > 0 ? value : null
@@ -22,7 +22,7 @@ export class SupabasePrescriptionRepository implements IPrescriptionRepository {
   constructor(private readonly client: AppSupabaseClient) {}
 
   async list(
-    doctorId: string,
+    doctorId: number,
     query: PrescriptionListQuery,
   ): Promise<Result<PrescriptionListResult, AppError>> {
     try {
@@ -55,7 +55,7 @@ export class SupabasePrescriptionRepository implements IPrescriptionRepository {
   }
 
   async create(
-    doctorId: string,
+    doctorId: number,
     input: CreatePrescriptionInput,
   ): Promise<Result<Prescription, AppError>> {
     try {
@@ -75,7 +75,6 @@ export class SupabasePrescriptionRepository implements IPrescriptionRepository {
 
       const itemsError = await this.replaceItems(header.id, input.items)
       if (itemsError) return err(itemsError)
-
       return this.getById(header.id)
     } catch (e) {
       return err(normalizeError(e))
@@ -100,7 +99,6 @@ export class SupabasePrescriptionRepository implements IPrescriptionRepository {
         const itemsError = await this.replaceItems(id, input.items)
         if (itemsError) return err(itemsError)
       }
-
       return this.getById(id)
     } catch (e) {
       return err(normalizeError(e))
