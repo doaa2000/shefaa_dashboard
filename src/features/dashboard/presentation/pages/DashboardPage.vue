@@ -10,7 +10,9 @@ const store = useDashboardStore()
 const auth = useAuthStore()
 const { summary, loading, error } = storeToRefs(store)
 
-const greetingName = computed(() => auth.profile?.name || 'Doctor')
+const greetingName = computed(
+  () => auth.profile?.name || auth.session?.user.email?.split('@')[0] || 'Doctor',
+)
 
 onMounted(() => store.fetchSummary())
 </script>

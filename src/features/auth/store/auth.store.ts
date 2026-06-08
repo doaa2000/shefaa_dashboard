@@ -48,7 +48,11 @@ export const useAuthStore = defineStore('auth', () => {
       name: session.value?.user.email?.split('@')[0] ?? 'Doctor',
       email: session.value?.user.email ?? '',
     })
-    if (isOk(result)) profile.value = result.value
+    if (isOk(result)) {
+      profile.value = result.value
+    } else {
+      error.value = result.error
+    }
   }
 
   async function signIn(credentials: Credentials): Promise<boolean> {
