@@ -148,6 +148,59 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['doctor_availability']['Insert']>
         Relationships: []
       }
+      doctor_schedule: {
+        Row: {
+          id: number
+          doctor_id: number
+          weekday: number
+          session: string
+          start_time: string
+          end_time: string
+          capacity: number
+          is_active: boolean
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: number
+          doctor_id: number
+          weekday: number
+          session: string
+          start_time: string
+          end_time: string
+          capacity: number
+          is_active?: boolean
+        }
+        Update: Partial<Database['public']['Tables']['doctor_schedule']['Insert']>
+        Relationships: []
+      }
+      doctor_schedule_exceptions: {
+        Row: {
+          id: number
+          doctor_id: number
+          date: string
+          session: string | null
+          is_closed: boolean
+          start_time: string | null
+          end_time: string | null
+          capacity: number | null
+          reason: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: number
+          doctor_id: number
+          date: string
+          session?: string | null
+          is_closed?: boolean
+          start_time?: string | null
+          end_time?: string | null
+          capacity?: number | null
+          reason?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['doctor_schedule_exceptions']['Insert']>
+        Relationships: []
+      }
       payments: {
         Row: {
           id: number

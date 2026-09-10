@@ -4,36 +4,49 @@ import { type AppError, normalizeError } from '@/core/errors'
 import type { Tables } from '@/core/types/database.types'
 import type { IScheduleRepository } from '../domain/schedule.repository'
 import type {
-  AvailabilitySlot,
-  CreateAvailabilityInput,
-  UpdateAvailabilityInput,
+  ScheduleEntry,
+  CreateScheduleInput,
+  UpdateScheduleInput,
 } from '../domain/schedule.models'
 
-function toSlot(row: Tables<'doctor_availability'>): AvailabilitySlot {
+function toEntry(row: Tables<'doctor_schedule'>): ScheduleEntry {
   return {
     id: row.id,
-    doctorId: row.doctor_id ?? 0,
-    date: row.date,
+    doctorId: row.doctor_id,
+    weekday: row.weekday,
+    session: row.session,
     startTime: row.start_time,
     endTime: row.end_time,
-    session: row.session,
-    isActive: row.is_active ?? true,
+    capacity: row.capacity,
+    isActive: row.is_active,
+  }
+}
+
+/** Only the fields that were actually supplied, so a partial update stays partial. */
+function toRow(input: UpdateScheduleInput) {
+  return {
+    ...(input.weekday !== undefined && { weekday: input.weekday }),
+    ...(input.session !== undefined && { session: input.session }),
+    ...(input.startTime !== undefined && { start_time: input.startTime }),
+    ...(input.endTime !== undefined && { end_time: input.endTime }),
+    ...(input.capacity !== undefined && { capacity: input.capacity }),
+    ...(input.isActive !== undefined && { is_active: input.isActive }),
   }
 }
 
 export class SupabaseScheduleRepository implements IScheduleRepository {
   constructor(private readonly client: AppSupabaseClient) {}
 
-  async list(doctorId: number): Promise<Result<AvailabilitySlot[], AppError>> {
+  async list(doctorId: number): Promise<Result<ScheduleEntry[], AppError>> {
     try {
       const { data, error } = await this.client
-        .from('doctor_availability')
+        .from('doctor_schedule')
         .select('*')
         .eq('doctor_id', doctorId)
-        .order('date', { ascending: true })
+        .order('weekday', { ascending: true })
         .order('start_time', { ascending: true })
       if (error) return err(normalizeError(error))
-      return ok(data.map(toSlot))
+      return ok(data.map(toEntry))
     } catch (e) {
       return err(normalizeError(e))
     }
@@ -41,47 +54,39 @@ export class SupabaseScheduleRepository implements IScheduleRepository {
 
   async create(
     doctorId: number,
-    input: CreateAvailabilityInput,
-  ): Promise<Result<AvailabilitySlot, AppError>> {
+    input: CreateScheduleInput,
+  ): Promise<Result<ScheduleEntry, AppError>> {
     try {
       const { data, error } = await this.client
-        .from('doctor_availability')
+        .from('doctor_schedule')
         .insert({
           doctor_id: doctorId,
-          date: input.date,
+          weekday: input.weekday,
+          session: input.session,
           start_time: input.startTime,
           end_time: input.endTime,
-          session: input.session,
+          capacity: input.capacity,
           is_active: input.isActive,
         })
         .select('*')
         .single()
       if (error) return err(normalizeError(error))
-      return ok(toSlot(data))
+      return ok(toEntry(data))
     } catch (e) {
       return err(normalizeError(e))
     }
   }
 
-  async update(
-    id: number,
-    input: UpdateAvailabilityInput,
-  ): Promise<Result<AvailabilitySlot, AppError>> {
+  async update(id: number, input: UpdateScheduleInput): Promise<Result<ScheduleEntry, AppError>> {
     try {
       const { data, error } = await this.client
-        .from('doctor_availability')
-        .update({
-          date: input.date,
-          start_time: input.startTime,
-          end_time: input.endTime,
-          session: input.session,
-          is_active: input.isActive,
-        })
+        .from('doctor_schedule')
+        .update(toRow(input))
         .eq('id', id)
         .select('*')
         .single()
       if (error) return err(normalizeError(error))
-      return ok(toSlot(data))
+      return ok(toEntry(data))
     } catch (e) {
       return err(normalizeError(e))
     }
@@ -89,7 +94,7 @@ export class SupabaseScheduleRepository implements IScheduleRepository {
 
   async remove(id: number): Promise<Result<void, AppError>> {
     try {
-      const { error } = await this.client.from('doctor_availability').delete().eq('id', id)
+      const { error } = await this.client.from('doctor_schedule').delete().eq('id', id)
       if (error) return err(normalizeError(error))
       return ok(undefined)
     } catch (e) {
