@@ -43,17 +43,27 @@ export class AuthService {
   }
 
   /**
-   * Returns the doctor's profile, creating the Doctors row on first login if it
-   * doesn't exist yet (e.g. right after registration).
+   * The doctor record this account is linked to.
+   *
+   * It does NOT create one when there is no match. A Doctors row is created by
+   * the admin, who sets the specialty, clinic, fee and email; the account is
+   * then linked to it by matching that confirmed address. Inventing a row here
+   * produced a doctor with no specialty, no clinic and no schedule, invisible
+   * to patients and sitting beside the real record the admin had already made.
+   *
+   * Since row level security also allows only an admin to insert into Doctors,
+   * that path could no longer succeed anyway -- it would fail with a permission
+   * error that says nothing about the actual problem.
    */
-  async ensureProfile(
-    userId: string,
-    fallback: { name: string; email: string },
-  ): Promise<Result<DoctorProfile, AppError>> {
+  async loadLinkedProfile(userId: string): Promise<Result<DoctorProfile, AppError>> {
     const existing = await this.repo.getProfile(userId)
     if (!existing.ok) return err(existing.error)
     if (existing.value) return ok(existing.value)
-    return this.repo.createProfile(userId, fallback)
+    return err(
+      AppError.permission(
+        'This account is not linked to a doctor yet. Ask the clinic administrator to add you with this email address.',
+      ),
+    )
   }
 
   updateProfile(doctorId: number, patch: DoctorProfilePatch): Promise<Result<DoctorProfile, AppError>> {

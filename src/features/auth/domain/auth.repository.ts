@@ -21,6 +21,7 @@ export interface IAuthRepository {
   /** Returns the Doctors row linked to the auth user, or null if not linked yet. */
   getProfile(userId: string): Promise<Result<DoctorProfile | null, AppError>>
   /** Creates the Doctors row for a freshly registered doctor. */
+  /** @deprecated Doctors are created by the admin; see AuthService.loadLinkedProfile. */
   createProfile(
     userId: string,
     data: { name: string; email: string },
