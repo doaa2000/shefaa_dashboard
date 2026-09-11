@@ -44,10 +44,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function loadProfile(): Promise<void> {
     const uid = userId.value
     if (!uid) return
-    const result = await service.ensureProfile(uid, {
-      name: session.value?.user.email?.split('@')[0] ?? 'Doctor',
-      email: session.value?.user.email ?? '',
-    })
+    const result = await service.loadLinkedProfile(uid)
     if (isOk(result)) {
       profile.value = result.value
     } else {
@@ -82,11 +79,11 @@ export const useAuthStore = defineStore('auth', () => {
     session.value = result.value
     // Session is null only when email confirmation is required.
     if (result.value) {
-      const ensured = await service.ensureProfile(result.value.user.id, {
-        name: payload.fullName,
-        email: payload.email,
-      })
-      if (isOk(ensured)) profile.value = ensured.value
+      // A brand-new signup has no linked doctor until the admin adds them with
+      // this address, so an unlinked result here is expected, not a failure to
+      // report over the registration itself.
+      const linked = await service.loadLinkedProfile(result.value.user.id)
+      if (isOk(linked)) profile.value = linked.value
     }
     loading.value = false
     return true

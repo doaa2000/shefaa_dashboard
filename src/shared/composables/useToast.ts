@@ -17,8 +17,23 @@ function dismiss(id: string): void {
   toasts.value = toasts.value.filter((t) => t.id !== id)
 }
 
+let counter = 0
+
+/**
+ * A toast id only has to be unique among the handful on screen.
+ *
+ * crypto.randomUUID exists only in a secure context, so it is undefined over
+ * plain HTTP on a LAN address — which is exactly how the dev server is reached
+ * when `host: true` lets another device open it. Calling it there threw while
+ * rendering an error toast, hiding the error the toast was there to report.
+ */
+function nextId(): string {
+  counter += 1
+  return `toast-${Date.now().toString(36)}-${counter}`
+}
+
 function push(toast: Omit<Toast, 'id' | 'duration'> & { duration?: number }): string {
-  const id = crypto.randomUUID()
+  const id = nextId()
   const duration = toast.duration ?? 4000
   toasts.value = [...toasts.value, { ...toast, id, duration }]
   if (duration > 0) {
