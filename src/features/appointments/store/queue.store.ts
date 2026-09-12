@@ -27,30 +27,37 @@ export const useQueueStore = defineStore('queue', () => {
   const error = ref<AppError | null>(null)
 
   /**
-   * Queue numbers are positions in the day's booking order, counted per
-   * session. They are derived here rather than stored, so a cancellation moves
-   * everyone behind it up -- which is what the patient's app promises.
+   * The day's bookings, grouped by the window each one was booked into.
    *
-   * The rows arrive already ordered by created_at then id, the same ordering
-   * the booking_queue view uses, so the number a patient sees on their phone
-   * and the number here are the same number.
+   * Grouped by start_time rather than by session: a doctor who set an
+   * appointment length has several windows inside one session, and lumping
+   * them together would put a nine o'clock patient and a two o'clock one in
+   * the same list.
+   *
+   * `position` is for reading the list, not for telling anybody. The patient's
+   * app shows no number at all -- the clinic sees people in the order they
+   * arrive, and the walk-ins are not in this table.
    */
   const sessions = computed<SessionQueue[]>(() => {
-    const bySession = new Map<string, QueueEntry[]>()
+    const byWindow = new Map<string, QueueEntry[]>()
 
     for (const item of items.value) {
-      const list = bySession.get(item.session) ?? []
-      list.push({ ...item, queueNumber: list.length + 1 })
-      bySession.set(item.session, list)
+      const key = `${item.session}|${item.startTime}|${item.endTime}`
+      const list = byWindow.get(key) ?? []
+      list.push({ ...item, position: list.length + 1 })
+      byWindow.set(key, list)
     }
 
-    return [...bySession.entries()]
-      // morning before evening, whatever order the rows arrived in
+    return [...byWindow.entries()]
+      // Through the day, whatever order the rows arrived in.
       .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([session, entries]) => {
+      .map(([key, entries]) => {
+        const [session, startTime, endTime] = key.split('|')
         const waiting = entries.filter((e) => !SETTLED.includes(e.status))
         return {
           session,
+          startTime,
+          endTime,
           entries,
           current: waiting[0] ?? null,
           waiting: waiting.slice(1),

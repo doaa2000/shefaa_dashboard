@@ -7,8 +7,12 @@ import { useScheduleStore } from '../../store/schedule.store'
 import { scheduleSchema, type ScheduleFormValues } from '../../domain/schedule.schema'
 import {
   SESSION_OPTIONS,
+  SLOT_OPTIONS,
   WEEKDAY_OPTIONS,
+  WHOLE_SESSION,
   minutesPerPatient,
+  slotLabel,
+  toSlotMinutes,
   type ScheduleEntry,
 } from '../../domain/schedule.models'
 import { useToast } from '@/shared/composables/useToast'
@@ -33,6 +37,7 @@ const DEFAULTS: Partial<ScheduleFormValues> = {
   startTime: '09:00',
   endTime: '13:00',
   capacity: 16,
+  slotMinutes: WHOLE_SESSION,
   isActive: true,
 }
 
@@ -46,11 +51,17 @@ const [session] = defineField('session')
 const [startTime, startAttrs] = defineField('startTime')
 const [endTime, endAttrs] = defineField('endTime')
 const [capacity, capacityAttrs] = defineField('capacity')
+const [slotMinutes] = defineField('slotMinutes')
 
 onMounted(() => store.fetchList())
 
 const onSubmit = handleSubmit(async (values) => {
-  const ok = await store.create(values)
+  // The form carries the choice as a string because a select cannot hold null;
+  // the database holds null, which is what "one window" is.
+  const ok = await store.create({
+    ...values,
+    slotMinutes: toSlotMinutes(values.slotMinutes),
+  })
   if (ok) {
     toast.success('Session added to your week')
     resetForm({ values: DEFAULTS })
@@ -108,7 +119,10 @@ function pace(entry: ScheduleEntry): string {
           :invalid="!!errors.capacity"
         />
       </FormField>
-      <div class="flex items-end">
+      <FormField label="Appointments">
+        <BaseSelect v-model="slotMinutes" :options="SLOT_OPTIONS" :placeholder="undefined" />
+      </FormField>
+      <div class="flex items-end sm:col-span-6">
         <BaseButton type="submit" block :loading="saving">Add</BaseButton>
       </div>
     </form>
@@ -116,6 +130,12 @@ function pace(entry: ScheduleEntry): string {
     <p class="mt-2 text-xs text-slate-500">
       “Patients” is how many you see in that session — your own number, not a calculation.
       A session that runs long for some patients and short for others still has one honest total.
+    </p>
+    <p class="mt-1 text-xs text-slate-500">
+      “Appointments” decides what a patient is told. <strong>Whole session</strong> shows them the
+      session as one window and asks them to arrive in it — right for a clinic that sees people in
+      the order they walk in. A length splits the session into separate times to book, and the
+      patients are spread across them.
     </p>
 
     <div class="mt-5">
@@ -151,6 +171,7 @@ function pace(entry: ScheduleEntry): string {
                   {{ entry.startTime.slice(0, 5) }} – {{ entry.endTime.slice(0, 5) }}
                 </span>
                 <span class="text-sm text-slate-600">{{ entry.capacity }} patients</span>
+                <BaseBadge tone="neutral">{{ slotLabel(entry) }}</BaseBadge>
                 <span class="text-xs text-slate-400">{{ pace(entry) }}</span>
                 <BaseBadge v-if="!entry.isActive" tone="neutral">Paused</BaseBadge>
               </div>

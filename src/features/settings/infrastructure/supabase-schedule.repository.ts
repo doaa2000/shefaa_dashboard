@@ -18,6 +18,7 @@ function toEntry(row: Tables<'doctor_schedule'>): ScheduleEntry {
     startTime: row.start_time,
     endTime: row.end_time,
     capacity: row.capacity,
+    slotMinutes: row.slot_minutes,
     isActive: row.is_active,
   }
 }
@@ -30,6 +31,9 @@ function toRow(input: UpdateScheduleInput) {
     ...(input.startTime !== undefined && { start_time: input.startTime }),
     ...(input.endTime !== undefined && { end_time: input.endTime }),
     ...(input.capacity !== undefined && { capacity: input.capacity }),
+    // null is a real value here -- it means "one window" -- so this checks for
+    // undefined rather than falsiness, or clearing the setting would no-op.
+    ...(input.slotMinutes !== undefined && { slot_minutes: input.slotMinutes }),
     ...(input.isActive !== undefined && { is_active: input.isActive }),
   }
 }
@@ -66,6 +70,7 @@ export class SupabaseScheduleRepository implements IScheduleRepository {
           start_time: input.startTime,
           end_time: input.endTime,
           capacity: input.capacity,
+          slot_minutes: input.slotMinutes,
           is_active: input.isActive,
         })
         .select('*')
