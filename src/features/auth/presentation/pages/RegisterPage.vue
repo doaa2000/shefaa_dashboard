@@ -29,9 +29,20 @@ const onSubmit = handleSubmit(async (values) => {
   if (success) {
     toast.success('Account created', 'Welcome to Shefaa.')
     await router.replace('/')
-  } else if (auth.error) {
-    toast.error('Registration failed', auth.error.message)
+    return
   }
+
+  // A permission error here does not mean the account was not created -- it
+  // means it is not a doctor's yet. Calling that "registration failed" sends
+  // someone off to sign up again with the same address, which will not work
+  // and will not tell them why.
+  if (auth.error?.kind === 'permission') {
+    toast.info('Account created', auth.error.message)
+    await router.replace({ name: 'login' })
+    return
+  }
+
+  if (auth.error) toast.error('Registration failed', auth.error.message)
 })
 </script>
 

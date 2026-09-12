@@ -75,6 +75,10 @@ export interface Database {
           phone: string | null
           gender: string | null
           birth_date: string | null
+          status: string | null
+          created_at: string | null
+          /** Public URL of the patient's own photograph, or null. */
+          image: string | null
         }
         Insert: {
           id: string

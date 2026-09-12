@@ -24,9 +24,17 @@ const onSubmit = handleSubmit(async (values) => {
   if (success) {
     const redirect = (route.query.redirect as string) || '/'
     await router.replace(redirect)
-  } else {
-    toast.error('Sign in failed', auth.error?.message ?? 'Invalid email or password.')
+    return
   }
+
+  // An account that is not a doctor's is turned away, not failed: the password
+  // was right. The message from the store says what to do about it.
+  if (auth.error?.kind === 'permission') {
+    toast.info('This dashboard is for doctors', auth.error.message)
+    return
+  }
+
+  toast.error('Sign in failed', auth.error?.message ?? 'Invalid email or password.')
 })
 </script>
 
