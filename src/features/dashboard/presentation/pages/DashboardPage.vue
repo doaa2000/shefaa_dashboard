@@ -36,8 +36,12 @@ onMounted(() => store.fetchSummary())
       <StatCard label="Total patients" :value="summary.totalPatients" tone="primary" />
       <StatCard label="Appointments today" :value="summary.appointmentsToday" tone="accent" />
       <StatCard label="Upcoming appointments" :value="summary.appointmentsUpcoming" tone="amber" />
-      <StatCard label="Consultations this month" :value="summary.consultationsThisMonth" tone="emerald" />
-      <StatCard label="Active prescriptions" :value="summary.activePrescriptions" tone="primary" />
+      <!--
+        Consultations and prescriptions are not built. A tile reading "0" for
+        something that cannot happen is not a measurement, it is a promise the
+        doctor will wonder why nobody keeps. The fields stay in the summary so
+        the tiles can come back the day the features do.
+      -->
       <StatCard label="Revenue this month" :value="`EGP ${summary.revenueThisMonth.toLocaleString()}`" tone="emerald" />
     </div>
   </div>

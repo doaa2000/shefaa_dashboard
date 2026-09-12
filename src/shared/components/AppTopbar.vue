@@ -2,7 +2,6 @@
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/features/auth/store/auth.store'
 import { BaseAvatar } from '@/shared/ui'
-import NotificationBell from './NotificationBell.vue'
 
 defineProps<{ title: string }>()
 const emit = defineEmits<{ toggleSidebar: [] }>()
@@ -28,7 +27,12 @@ async function signOut() {
     </div>
 
     <div class="flex items-center gap-2">
-      <NotificationBell />
+      <!--
+        The bell is out until notifications are built. It fetched from a
+        table that does not exist and opened a realtime subscription to it,
+        on every page, so every screen in the dashboard carried a failing
+        request it never showed anyone.
+      -->
       <div class="group relative">
         <button class="flex items-center gap-2 rounded-xl py-1 pl-1 pr-2 hover:bg-surface-muted">
           <BaseAvatar :name="auth.profile?.name" :src="auth.profile?.image" size="sm" />
