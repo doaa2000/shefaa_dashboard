@@ -70,7 +70,11 @@ export class SupabaseScheduleRepository implements IScheduleRepository {
           start_time: input.startTime,
           end_time: input.endTime,
           capacity: input.capacity,
-          slot_minutes: input.slotMinutes,
+          // Only when there is something to say. The column defaults to null,
+          // which is exactly what "one window" means, so sending the null adds
+          // nothing -- and makes an ordinary session impossible to add on a
+          // project whose API has not picked the new column up yet.
+          ...(input.slotMinutes !== null && { slot_minutes: input.slotMinutes }),
           is_active: input.isActive,
         })
         .select('*')
