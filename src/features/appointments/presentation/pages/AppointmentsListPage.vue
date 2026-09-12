@@ -13,7 +13,7 @@ import { BaseBadge, BaseButton, BaseSelect, BasePagination, BaseTable, type Colu
 
 const store = useAppointmentStore()
 const toast = useToast()
-const { items, total, loading, saving } = storeToRefs(store)
+const { items, total, loading, saving, error } = storeToRefs(store)
 
 const pagination = usePagination({ pageSize: 10 })
 const statusFilter = ref<string>('')
@@ -85,7 +85,15 @@ async function changeStatus(a: Appointment, status: string) {
       />
     </div>
 
-    <BaseTable :columns="columns" :rows="items" :loading="loading" empty-title="No appointments" empty-description="Create your first booking.">
+    <!-- An account with no doctor behind it has no appointments to list. The
+         table would just say "No appointments", which reads as a bug. -->
+    <BaseTable
+      :columns="columns"
+      :rows="items"
+      :loading="loading"
+      empty-title="No appointments"
+      :empty-description="error?.message ?? 'Create your first booking.'"
+    >
       <template #cell:bookedDate="{ row }">
         <span class="font-medium text-slate-800">{{ formatDate(row.bookedDate) }}</span>
       </template>

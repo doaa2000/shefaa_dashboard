@@ -2,7 +2,7 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { container } from '@/app/providers/container'
 import { isOk } from '@/core/result'
-import type { AppError } from '@/core/errors'
+import { AppError } from '@/core/errors'
 import { useAuthStore } from '@/features/auth/store/auth.store'
 import type { Appointment, QueueEntry, SessionQueue } from '../domain/appointment.models'
 
@@ -62,7 +62,17 @@ export const useQueueStore = defineStore('queue', () => {
   const isEmpty = computed(() => !loading.value && items.value.length === 0)
 
   async function load(): Promise<void> {
-    if (!auth.doctorId) return
+    // An account with no doctor behind it is the commonest reason this page is
+    // blank, and returning quietly here is what made it look like a bug in the
+    // page rather than a link that was never made.
+    if (!auth.doctorId) {
+      items.value = []
+      error.value = AppError.permission(
+        'This account is not linked to a doctor yet, so there is no queue to show. ' +
+          'Ask the administrator to add you with this email address.',
+      )
+      return
+    }
     loading.value = true
     error.value = null
     const result = await service.listQueue(auth.doctorId, date.value)
