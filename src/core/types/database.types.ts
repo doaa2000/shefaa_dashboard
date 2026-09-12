@@ -159,6 +159,8 @@ export interface Database {
           start_time: string
           end_time: string
           capacity: number
+          /** Minutes per bookable window; null means the session is one window. */
+          slot_minutes: number | null
           is_active: boolean
           created_at: string | null
           updated_at: string | null
@@ -171,6 +173,7 @@ export interface Database {
           start_time: string
           end_time: string
           capacity: number
+          slot_minutes?: number | null
           is_active?: boolean
         }
         Update: Partial<Database['public']['Tables']['doctor_schedule']['Insert']>

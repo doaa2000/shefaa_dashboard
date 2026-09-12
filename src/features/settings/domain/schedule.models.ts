@@ -19,6 +19,12 @@ export interface ScheduleEntry {
    * number better than an average visit length would predict it.
    */
   capacity: number
+  /**
+   * How long each bookable appointment is, in minutes. Null means the session
+   * is offered as one window from start to end, which is how a clinic that
+   * sees people in the order they arrive actually runs.
+   */
+  slotMinutes: number | null
   isActive: boolean
 }
 
@@ -28,6 +34,7 @@ export interface CreateScheduleInput {
   startTime: string
   endTime: string
   capacity: number
+  slotMinutes: number | null
   isActive: boolean
 }
 
@@ -37,10 +44,55 @@ export type UpdateScheduleInput = Partial<CreateScheduleInput>
  * Only the two the database accepts. The old list offered "Afternoon", which
  * the session CHECK constraint rejects — picking it failed on save.
  */
+/** The select value that stands for "do not cut this session up at all". */
+export const WHOLE_SESSION = 'whole'
+
 export const SESSION_OPTIONS: { label: string; value: string }[] = [
   { label: 'Morning', value: 'morning' },
   { label: 'Evening', value: 'evening' },
 ]
+
+/**
+ * How the session is offered to patients. "Whole session" is one window from
+ * start to end: the patient is told when to arrive and the clinic works through
+ * everyone in arrival order. A length cuts the session into appointments, for a
+ * doctor who really does run to a clock.
+ *
+ * The values are strings because the select element only carries strings, and
+ * because null -- the value that matters most here -- cannot be one of them.
+ */
+export const SLOT_OPTIONS: { label: string; value: string }[] = [
+  { label: 'Whole session', value: WHOLE_SESSION },
+  { label: '15 minutes', value: '15' },
+  { label: '20 minutes', value: '20' },
+  { label: '30 minutes', value: '30' },
+  { label: '1 hour', value: '60' },
+]
+
+export function toSlotMinutes(value: string): number | null {
+  return value === WHOLE_SESSION ? null : Number(value)
+}
+
+export function fromSlotMinutes(minutes: number | null): string {
+  return minutes === null ? WHOLE_SESSION : String(minutes)
+}
+
+/** What the patient will be offered, in words. */
+export function slotLabel(entry: ScheduleEntry): string {
+  if (entry.slotMinutes === null) return 'One window'
+  const count = windowCount(entry)
+  return `${count} × ${entry.slotMinutes} min`
+}
+
+/** How many appointments the session is cut into. */
+export function windowCount(entry: ScheduleEntry): number {
+  if (entry.slotMinutes === null) return 1
+  const [sh, sm] = entry.startTime.split(':').map(Number)
+  const [eh, em] = entry.endTime.split(':').map(Number)
+  const minutes = eh * 60 + em - (sh * 60 + sm)
+  if (minutes <= 0) return 1
+  return Math.max(Math.ceil(minutes / entry.slotMinutes), 1)
+}
 
 export const WEEKDAY_OPTIONS: { label: string; value: number }[] = [
   { label: 'Sunday', value: 0 },

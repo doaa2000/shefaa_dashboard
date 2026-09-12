@@ -11,6 +11,12 @@ export const scheduleSchema = z
       .int('Whole patients only')
       .min(1, 'At least one patient')
       .max(200, 'That looks too high'),
+    /**
+     * Carried as a string: 'whole' for one window, otherwise the minutes. The
+     * store converts it before it reaches the database, where the same choice
+     * is null or a number.
+     */
+    slotMinutes: z.string().default('whole'),
     isActive: z.boolean().default(true),
   })
   .refine((d) => d.endTime > d.startTime, {

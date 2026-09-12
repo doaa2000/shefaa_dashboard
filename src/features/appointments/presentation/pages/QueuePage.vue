@@ -5,7 +5,7 @@ import { useQueueStore } from '../../store/queue.store'
 import { useToast } from '@/shared/composables/useToast'
 import { formatDate } from '@/shared/utils/datetime'
 import { statusLabel, statusTone } from '../../domain/appointment.labels'
-import type { QueueEntry } from '../../domain/appointment.models'
+import type { QueueEntry, SessionQueue } from '../../domain/appointment.models'
 import { BaseBadge, BaseButton, BaseCard, BaseEmptyState, BaseSpinner } from '@/shared/ui'
 
 const store = useQueueStore()
@@ -24,12 +24,20 @@ function sessionLabel(session: string): string {
   return session === 'morning' ? 'Morning' : 'Evening'
 }
 
+/** "Evening · 18:00 - 21:00", which is what the patient was told to arrive in. */
+function windowLabel(queue: SessionQueue): string {
+  const from = queue.startTime.slice(0, 5)
+  const to = queue.endTime.slice(0, 5)
+  if (!from && !to) return sessionLabel(queue.session)
+  return `${sessionLabel(queue.session)} · ${from} - ${to}`
+}
+
 async function settle(entry: QueueEntry, status: 'completed' | 'no_show') {
   const ok = await store.settle(entry.id, status)
   if (ok) {
     toast.success(
       status === 'completed' ? 'Marked as seen' : 'Marked as no show',
-      entry.patientName ?? `#${entry.queueNumber}`,
+      entry.patientName ?? `#${entry.position}`,
     )
   } else if (store.error) {
     toast.error('Could not update', store.error.message)
@@ -71,9 +79,14 @@ async function settle(entry: QueueEntry, status: 'completed' | 'no_show') {
       />
     </BaseCard>
 
-    <BaseCard v-for="queue in sessions" v-else :key="queue.session" padded>
+    <BaseCard
+      v-for="queue in sessions"
+      v-else
+      :key="`${queue.session}|${queue.startTime}`"
+      padded
+    >
       <template #header>
-        <h3 class="text-sm font-semibold text-slate-800">{{ sessionLabel(queue.session) }}</h3>
+        <h3 class="text-sm font-semibold text-slate-800">{{ windowLabel(queue) }}</h3>
         <p class="mt-0.5 text-xs text-slate-500">
           {{ queue.done.length }} of {{ queue.entries.length }} seen
         </p>
@@ -90,7 +103,7 @@ async function settle(entry: QueueEntry, status: 'completed' | 'no_show') {
             <span
               class="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-600 text-2xl font-bold text-white"
             >
-              {{ queue.current.queueNumber }}
+              {{ queue.current.position }}
             </span>
             <div>
               <p class="text-lg font-semibold text-slate-900">
@@ -124,7 +137,7 @@ async function settle(entry: QueueEntry, status: 'completed' | 'no_show') {
         v-else
         class="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-800"
       >
-        Everyone in this session has been seen.
+        Everyone booked into this time has been seen.
       </div>
 
       <!-- Waiting -->
@@ -140,7 +153,7 @@ async function settle(entry: QueueEntry, status: 'completed' | 'no_show') {
               <span
                 class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-sm font-semibold text-slate-600"
               >
-                {{ entry.queueNumber }}
+                {{ entry.position }}
               </span>
               <span class="text-sm text-slate-700">
                 {{ entry.patientName ?? 'Unnamed patient' }}
@@ -164,7 +177,7 @@ async function settle(entry: QueueEntry, status: 'completed' | 'no_show') {
               <span
                 class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-sm font-semibold text-slate-400"
               >
-                {{ entry.queueNumber }}
+                {{ entry.position }}
               </span>
               <span class="text-sm text-slate-500 line-through">
                 {{ entry.patientName ?? 'Unnamed patient' }}
