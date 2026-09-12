@@ -41,6 +41,28 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     }
   }
 
+  async listQueue(doctorId: number, date: string): Promise<Result<Appointment[], AppError>> {
+    try {
+      // Ordered by when the booking was made, not by start_time: everyone in a
+      // session shares the same window, and the order they booked in is the
+      // order they are seen in. Same ordering as the booking_queue view, so a
+      // patient's number here is the number their phone shows them.
+      const { data, error } = await this.client
+        .from('bookings')
+        .select(SELECT)
+        .eq('doctor_id', doctorId)
+        .eq('booked_date', date)
+        .neq('status', 'cancelled')
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true })
+
+      if (error) return err(normalizeError(error))
+      return ok(data.map(toAppointment))
+    } catch (e) {
+      return err(normalizeError(e))
+    }
+  }
+
   async getById(id: number): Promise<Result<Appointment, AppError>> {
     try {
       const { data, error } = await this.client.from('bookings').select(SELECT).eq('id', id).single()

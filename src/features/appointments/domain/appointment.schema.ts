@@ -4,6 +4,8 @@ export const appointmentSchema = z
   .object({
     patientId: z.string().uuid('Select a patient'),
     bookedDate: z.string().min(1, 'Pick a date'),
+    // A booking with no session belongs to no queue, so it cannot be optional.
+    session: z.enum(['morning', 'evening'], { message: 'Pick a session' }),
     startTime: z.string().min(1, 'Start time required'),
     endTime: z.string().min(1, 'End time required'),
     status: z.string().min(1),

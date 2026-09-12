@@ -4,6 +4,7 @@ import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { appointmentSchema, type AppointmentFormValues } from '../../domain/appointment.schema'
 import { STATUS_OPTIONS } from '../../domain/appointment.labels'
+import { SESSION_OPTIONS } from '@/features/settings/domain/schedule.models'
 import type { Appointment } from '../../domain/appointment.models'
 import { usePatientOptions } from '@/features/patients/application/usePatientOptions'
 import { BaseButton, BaseInput, BaseModal, BaseSelect, FormField } from '@/shared/ui'
@@ -23,6 +24,7 @@ const { defineField, handleSubmit, errors, resetForm } = useForm<AppointmentForm
 
 const [patientId] = defineField('patientId')
 const [bookedDate, dateAttrs] = defineField('bookedDate')
+const [session] = defineField('session')
 const [startTime, startAttrs] = defineField('startTime')
 const [endTime, endAttrs] = defineField('endTime')
 const [status] = defineField('status')
@@ -37,13 +39,20 @@ watch(
         values: {
           patientId: a.patientId,
           bookedDate: a.bookedDate,
+          session: a.session === 'evening' ? 'evening' : 'morning',
           startTime: a.startTime?.slice(0, 5),
           endTime: a.endTime?.slice(0, 5),
           status: a.status,
         },
       })
     } else {
-      resetForm({ values: { status: 'pending', bookedDate: new Date().toISOString().slice(0, 10) } })
+      resetForm({
+        values: {
+          status: 'pending',
+          session: 'morning',
+          bookedDate: new Date().toISOString().slice(0, 10),
+        },
+      })
     }
   },
 )
@@ -64,6 +73,9 @@ const onSubmit = handleSubmit((values) => emit('submit', values))
       </FormField>
       <FormField label="Date" :error="errors.bookedDate" required>
         <BaseInput v-model="bookedDate" v-bind="dateAttrs" type="date" :invalid="!!errors.bookedDate" />
+      </FormField>
+      <FormField label="Session" :error="errors.session" required>
+        <BaseSelect v-model="session" :options="SESSION_OPTIONS" :placeholder="undefined" :invalid="!!errors.session" />
       </FormField>
       <FormField label="Status">
         <BaseSelect v-model="status" :options="STATUS_OPTIONS" :placeholder="undefined" />
