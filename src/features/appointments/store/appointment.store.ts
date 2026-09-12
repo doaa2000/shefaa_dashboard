@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { container } from '@/app/providers/container'
 import { isOk } from '@/core/result'
-import type { AppError } from '@/core/errors'
+import { AppError } from '@/core/errors'
 import { useAuthStore } from '@/features/auth/store/auth.store'
 import type {
   Appointment,
@@ -22,7 +22,17 @@ export const useAppointmentStore = defineStore('appointments', () => {
   const error = ref<AppError | null>(null)
 
   async function fetchList(query: AppointmentListQuery): Promise<void> {
-    if (!auth.doctorId) return
+    // Same silent blank as the queue page had: no doctor behind the account
+    // means no appointments, and saying nothing makes it look like a bug here.
+    if (!auth.doctorId) {
+      items.value = []
+      total.value = 0
+      error.value = AppError.permission(
+        'This account is not linked to a doctor yet, so there are no appointments to show. ' +
+          'Ask the administrator to add you with this email address.',
+      )
+      return
+    }
     loading.value = true
     error.value = null
     const result = await service.list(auth.doctorId, query)

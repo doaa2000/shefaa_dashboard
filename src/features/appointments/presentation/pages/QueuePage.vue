@@ -10,7 +10,7 @@ import { BaseBadge, BaseButton, BaseCard, BaseEmptyState, BaseSpinner } from '@/
 
 const store = useQueueStore()
 const toast = useToast()
-const { date, sessions, loading, advancing, isEmpty } = storeToRefs(store)
+const { date, sessions, loading, advancing, isEmpty, error } = storeToRefs(store)
 
 const dateInput = ref(date.value)
 
@@ -60,10 +60,14 @@ async function settle(entry: QueueEntry, status: 'completed' | 'no_show') {
       <BaseSpinner />
     </div>
 
+    <BaseCard v-else-if="error" padded>
+      <BaseEmptyState title="Nothing to show" :description="error.message" />
+    </BaseCard>
+
     <BaseCard v-else-if="isEmpty" padded>
       <BaseEmptyState
         title="Nobody booked for this day"
-        description="When patients book, they appear here in the order they booked."
+        :description="`Patients who book for ${formatDate(date)} appear here, in the order they booked. Check the date if you are expecting someone.`"
       />
     </BaseCard>
 
