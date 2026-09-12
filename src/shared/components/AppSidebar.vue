@@ -13,6 +13,7 @@ interface NavItem {
 // Heroicons-style inline path strings keep the bundle free of an icon dep.
 const items: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: 'M3 12l9-9 9 9M5 10v10h14V10' },
+  { to: '/queue', label: "Today's queue", icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
   { to: '/appointments', label: 'Appointments', icon: 'M8 7V3m8 4V3M3 11h18M5 21h14a2 2 0 002-2V7H3v12a2 2 0 002 2z' },
   { to: '/patients', label: 'Patients', icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-2a4 4 0 10-4-4 4 4 0 004 4z' },
   { to: '/consultations', label: 'Consultations', icon: 'M7 8h10M7 12h6m-6 8l-4 1 1-4V5a2 2 0 012-2h12a2 2 0 012 2v9a2 2 0 01-2 2H7z' },

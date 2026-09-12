@@ -93,6 +93,7 @@ export interface Database {
           doctor_id: number
           payment_id: number | null
           booked_date: string
+          session: string
           start_time: string
           end_time: string
           status: string | null
@@ -104,6 +105,7 @@ export interface Database {
           doctor_id: number
           payment_id?: number | null
           booked_date: string
+          session?: string
           start_time: string
           end_time: string
           status?: string | null

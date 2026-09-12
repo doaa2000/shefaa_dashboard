@@ -19,6 +19,10 @@ export class AppointmentService {
     return this.repo.list(doctorId, query)
   }
 
+  listQueue(doctorId: number, date: string): Promise<Result<Appointment[], AppError>> {
+    return this.repo.listQueue(doctorId, date)
+  }
+
   getById(id: number): Promise<Result<Appointment, AppError>> {
     return this.repo.getById(id)
   }
