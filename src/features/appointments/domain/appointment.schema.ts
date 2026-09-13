@@ -1,18 +1,22 @@
 import { z } from 'zod'
+import { t } from '@/app/i18n'
 
-export const appointmentSchema = z
-  .object({
-    patientId: z.string().uuid('Select a patient'),
-    bookedDate: z.string().min(1, 'Pick a date'),
-    // A booking with no session belongs to no queue, so it cannot be optional.
-    session: z.enum(['morning', 'evening'], { message: 'Pick a session' }),
-    startTime: z.string().min(1, 'Start time required'),
-    endTime: z.string().min(1, 'End time required'),
-    status: z.string().min(1),
-  })
-  .refine((d) => d.endTime > d.startTime, {
-    message: 'End time must be after start time',
-    path: ['endTime'],
-  })
+// A function, like the other schemas: the messages are read in the language
+// the form is shown in.
+export const appointmentSchema = () =>
+  z
+    .object({
+      patientId: z.string().uuid(t('appointments.modal.selectPatient')),
+      bookedDate: z.string().min(1, t('validation.pickDate')),
+      // A booking with no session belongs to no queue, so it cannot be optional.
+      session: z.enum(['morning', 'evening'], { message: t('validation.pickSession') }),
+      startTime: z.string().min(1, t('validation.startRequired')),
+      endTime: z.string().min(1, t('validation.endRequired')),
+      status: z.string().min(1),
+    })
+    .refine((d) => d.endTime > d.startTime, {
+      message: t('validation.endAfterStart'),
+      path: ['endTime'],
+    })
 
-export type AppointmentFormValues = z.infer<typeof appointmentSchema>
+export type AppointmentFormValues = z.infer<ReturnType<typeof appointmentSchema>>

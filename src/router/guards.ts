@@ -1,6 +1,6 @@
 import type { Router } from 'vue-router'
 import { useAuthStore } from '@/features/auth/store/auth.store'
-import { env } from '@/core/config/env'
+import { t } from '@/app/i18n'
 
 /**
  * Registers global navigation guards:
@@ -28,7 +28,8 @@ export function registerGuards(router: Router): void {
   })
 
   router.afterEach((to) => {
-    const title = to.meta.title as string | undefined
-    document.title = title ? `${title} · ${env.appName}` : env.appName
+    const key = to.meta.titleKey as string | undefined
+    const name = t('common.appName')
+    document.title = key ? `${t(key)} · ${name}` : name
   })
 }

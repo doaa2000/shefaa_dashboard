@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useI18n } from 'vue-i18n'
 import { usePaymentStore, type RangePreset } from '../../store/payment.store'
 import { useToast } from '@/shared/composables/useToast'
 import { formatDate, formatDateTime } from '@/shared/utils/datetime'
-import { titleCase } from '@/shared/utils/formatters'
+import { formatMoney, labelFor } from '@/shared/utils/formatters'
 import { downloadCsv, toCsv } from '@/shared/utils/csv'
 import type { Payment, SettableStatus } from '../../domain/payment.models'
 import MethodBreakdown from '../components/MethodBreakdown.vue'
@@ -12,44 +13,44 @@ import { BaseBadge, BaseButton, BaseSelect, BaseTable, type Column } from '@/sha
 
 const store = usePaymentStore()
 const toast = useToast()
+const { t } = useI18n()
 const { range, preset, visibleItems, summary, byMethod, loading, savingId, error, statusFilter, methodFilter } =
   storeToRefs(store)
 
-const columns: Column[] = [
-  { key: 'bookedDate', label: 'Appointment' },
-  { key: 'patientName', label: 'Patient' },
-  { key: 'method', label: 'Method' },
-  { key: 'status', label: 'Status', align: 'center' },
-  { key: 'amount', label: 'Amount', align: 'right' },
+const columns = computed<Column[]>(() => [
+  { key: 'bookedDate', label: t('payments.columns.appointment') },
+  { key: 'patientName', label: t('payments.columns.patient') },
+  { key: 'method', label: t('payments.columns.method') },
+  { key: 'status', label: t('payments.columns.status'), align: 'center' },
+  { key: 'amount', label: t('payments.columns.amount'), align: 'right' },
   { key: 'actions', label: '', align: 'right' },
-]
-
-const presetOptions: { label: string; value: RangePreset }[] = [
-  { label: 'Today', value: 'today' },
-  { label: 'Last 7 days', value: 'week' },
-  { label: 'This month', value: 'month' },
-  { label: 'Custom', value: 'custom' },
-]
-
-const statusOptions = [
-  { label: 'All statuses', value: '' },
-  { label: 'Outstanding', value: 'pending' },
-  { label: 'Collected', value: 'paid' },
-  { label: 'Refunded', value: 'refunded' },
-]
-
-const methodOptions = computed(() => [
-  { label: 'All methods', value: '' },
-  ...byMethod.value.map((m) => ({ label: titleCase(m.method ?? '—'), value: m.method })),
 ])
 
-const money = (n: number) => `EGP ${Number(n).toLocaleString()}`
+const presetOptions = computed<{ label: string; value: RangePreset }[]>(() => [
+  { label: t('payments.range.today'), value: 'today' },
+  { label: t('payments.range.week'), value: 'week' },
+  { label: t('payments.range.month'), value: 'month' },
+  { label: t('payments.range.custom'), value: 'custom' },
+])
+
+const statusOptions = computed(() => [
+  { label: t('payments.allStatuses'), value: '' },
+  { label: t('paymentStatus.pending'), value: 'pending' },
+  { label: t('paymentStatus.paid'), value: 'paid' },
+  { label: t('paymentStatus.refunded'), value: 'refunded' },
+])
+
+const methodOptions = computed(() => [
+  { label: t('payments.allMethods'), value: '' },
+  ...byMethod.value.map((m) => ({ label: labelFor('method', m.method), value: m.method })),
+])
+
+const money = (n: number) => formatMoney(n)
 
 const statusTone = (s: string | null) =>
   s === 'paid' ? 'success' : s === 'refunded' ? 'neutral' : s === 'failed' ? 'danger' : 'warning'
 
-const statusLabel = (s: string | null) =>
-  s === 'paid' ? 'Collected' : s === 'pending' ? 'Outstanding' : s ? titleCase(s) : '—'
+const statusLabel = (s: string | null) => labelFor('paymentStatus', s)
 
 /** The window the patient was asked to come in, so a disputed fee can be
  *  matched to the visit it belongs to. */
@@ -59,7 +60,7 @@ const slot = (p: Payment) =>
 onMounted(() => store.fetchList())
 watch(range, () => store.fetchList(), { deep: true })
 watch(error, (e) => {
-  if (e) toast.error(e.message ?? 'Could not load payments')
+  if (e) toast.error(e.message ?? t('payments.toast.loadFailed'))
 })
 
 function onPreset(next: RangePreset) {
@@ -80,22 +81,30 @@ async function mark(payment: Payment, status: SettableStatus) {
   if (!done) return
   toast.success(
     status === 'paid'
-      ? `${money(payment.amount)} marked as collected`
+      ? t('payments.toast.markedCollected', { amount: money(payment.amount) })
       : status === 'refunded'
-        ? `${money(payment.amount)} marked as refunded`
-        : 'Marked as outstanding',
+        ? t('payments.toast.markedRefunded', { amount: money(payment.amount) })
+        : t('payments.toast.markedOutstanding'),
   )
 }
 
 function exportCsv() {
   const csv = toCsv(
-    ['Appointment date', 'Time', 'Patient', 'Method', 'Status', 'Amount', 'Collected at'],
+    [
+      t('payments.csv.date'),
+      t('payments.csv.time'),
+      t('payments.csv.patient'),
+      t('payments.csv.method'),
+      t('payments.csv.status'),
+      t('payments.csv.amount'),
+      t('payments.csv.collectedAt'),
+    ],
     visibleItems.value.map((p) => [
       p.bookedDate,
       slot(p),
       p.patientName ?? '',
-      p.method ?? '',
-      p.status,
+      labelFor('method', p.method),
+      statusLabel(p.status),
       p.amount,
       p.paidAt ?? '',
     ]),
@@ -108,10 +117,8 @@ function exportCsv() {
   <div class="space-y-5">
     <div class="flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h1 class="text-xl font-semibold text-slate-900">Payments</h1>
-        <p class="text-sm text-slate-500">
-          Fees for your appointments, and what has actually been collected.
-        </p>
+        <h1 class="text-xl font-semibold text-slate-900">{{ t('payments.title') }}</h1>
+        <p class="text-sm text-slate-500">{{ t('payments.subtitle') }}</p>
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
@@ -138,29 +145,29 @@ function exportCsv() {
           @change="onTo(($event.target as HTMLInputElement).value)"
         />
         <BaseButton variant="outline" :disabled="!visibleItems.length" @click="exportCsv">
-          Export CSV
+          {{ t('common.exportCsv') }}
         </BaseButton>
       </div>
     </div>
 
     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <div class="rounded-2xl border border-surface-border bg-white p-5 shadow-card">
-        <p class="text-sm font-medium text-slate-500">Collected</p>
+        <p class="text-sm font-medium text-slate-500">{{ t('payments.collected') }}</p>
         <p class="mt-2 text-2xl font-semibold text-emerald-600">{{ money(summary.collected) }}</p>
       </div>
       <div class="rounded-2xl border border-surface-border bg-white p-5 shadow-card">
-        <p class="text-sm font-medium text-slate-500">Outstanding</p>
+        <p class="text-sm font-medium text-slate-500">{{ t('payments.outstanding') }}</p>
         <p class="mt-2 text-2xl font-semibold text-amber-600">{{ money(summary.outstanding) }}</p>
-        <p class="mt-1 text-xs text-slate-400">Cancelled appointments are not counted.</p>
+        <p class="mt-1 text-xs text-slate-400">{{ t('payments.outstandingNote') }}</p>
       </div>
       <div class="rounded-2xl border border-surface-border bg-white p-5 shadow-card">
-        <p class="text-sm font-medium text-slate-500">Paid appointments</p>
+        <p class="text-sm font-medium text-slate-500">{{ t('payments.paidAppointments') }}</p>
         <p class="mt-2 text-2xl font-semibold text-slate-900">
           {{ summary.paidCount }} / {{ summary.totalCount }}
         </p>
       </div>
       <div class="rounded-2xl border border-surface-border bg-white p-5 shadow-card">
-        <p class="text-sm font-medium text-slate-500">Refunded</p>
+        <p class="text-sm font-medium text-slate-500">{{ t('payments.refunded') }}</p>
         <p class="mt-2 text-2xl font-semibold text-slate-900">{{ money(summary.refunded) }}</p>
       </div>
     </div>
@@ -175,7 +182,7 @@ function exportCsv() {
         <BaseSelect v-model="methodFilter" :options="methodOptions" />
       </div>
       <p class="text-sm text-slate-500">
-        {{ visibleItems.length }} of {{ summary.totalCount }} shown
+        {{ t('payments.shown', { shown: visibleItems.length, total: summary.totalCount }) }}
       </p>
     </div>
 
@@ -183,8 +190,8 @@ function exportCsv() {
       :columns="columns"
       :rows="visibleItems"
       :loading="loading"
-      empty-title="No payments in this range"
-      empty-description="Fees appear here as soon as patients book an appointment with you."
+      :empty-title="t('payments.emptyTitle')"
+      :empty-description="t('payments.emptyBody')"
     >
       <template #cell:bookedDate="{ row }">
         <div>
@@ -196,11 +203,11 @@ function exportCsv() {
         <div>
           <p>{{ row.patientName ?? '—' }}</p>
           <p v-if="row.bookingStatus === 'cancelled'" class="text-xs text-slate-400">
-            Appointment cancelled
+            {{ t('payments.appointmentCancelled') }}
           </p>
         </div>
       </template>
-      <template #cell:method="{ row }">{{ row.method ? titleCase(row.method) : '—' }}</template>
+      <template #cell:method="{ row }">{{ labelFor('method', row.method) }}</template>
       <template #cell:status="{ row }">
         <BaseBadge :tone="statusTone(row.status)">{{ statusLabel(row.status) }}</BaseBadge>
         <p v-if="row.paidAt" class="mt-1 text-xs text-slate-400">
@@ -218,7 +225,7 @@ function exportCsv() {
             :loading="savingId === row.id"
             @click="mark(row, 'paid')"
           >
-            Mark collected
+            {{ t('payments.markCollected') }}
           </BaseButton>
           <BaseButton
             v-else
@@ -227,7 +234,7 @@ function exportCsv() {
             :loading="savingId === row.id"
             @click="mark(row, 'pending')"
           >
-            Undo
+            {{ t('payments.undo') }}
           </BaseButton>
           <BaseButton
             v-if="row.status !== 'refunded'"
@@ -236,7 +243,7 @@ function exportCsv() {
             :loading="savingId === row.id"
             @click="mark(row, 'refunded')"
           >
-            Refund
+            {{ t('payments.refund') }}
           </BaseButton>
         </div>
       </template>

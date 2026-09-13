@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRouter, useRoute, RouterLink } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { useAuthStore } from '../../store/auth.store'
@@ -12,9 +14,12 @@ const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
 const toast = useToast()
+const { t } = useI18n()
 
 const { defineField, handleSubmit, errors } = useForm({
-  validationSchema: toTypedSchema(loginSchema),
+  // A computed schema, so the messages follow a language change instead of
+  // staying in whichever one the form was opened in.
+  validationSchema: computed(() => toTypedSchema(loginSchema())),
 })
 const [email, emailAttrs] = defineField('email')
 const [password, passwordAttrs] = defineField('password')
@@ -30,29 +35,32 @@ const onSubmit = handleSubmit(async (values) => {
   // An account that is not a doctor's is turned away, not failed: the password
   // was right. The message from the store says what to do about it.
   if (auth.error?.kind === 'permission') {
-    toast.info('This dashboard is for doctors', auth.error.message)
+    toast.info(t('auth.toast.doctorsOnly'), auth.error.message)
     return
   }
 
-  toast.error('Sign in failed', auth.error?.message ?? 'Invalid email or password.')
+  toast.error(
+    t('auth.toast.signInFailed'),
+    auth.error?.message ?? t('auth.toast.invalidCredentials'),
+  )
 })
 </script>
 
 <template>
-  <AuthCard title="Welcome back" subtitle="Sign in to your Shefaa dashboard">
+  <AuthCard :title="t('auth.welcomeBack')" :subtitle="t('auth.signInSubtitle')">
     <form class="space-y-4" @submit="onSubmit">
-      <FormField label="Email" for="email" :error="errors.email" required>
+      <FormField :label="t('auth.email')" for="email" :error="errors.email" required>
         <BaseInput
           id="email"
           v-model="email"
           v-bind="emailAttrs"
           type="email"
-          placeholder="doctor@clinic.com"
+          :placeholder="t('auth.emailPlaceholder')"
           :invalid="!!errors.email"
         />
       </FormField>
 
-      <FormField label="Password" for="password" :error="errors.password" required>
+      <FormField :label="t('auth.password')" for="password" :error="errors.password" required>
         <BaseInput
           id="password"
           v-model="password"
@@ -65,16 +73,18 @@ const onSubmit = handleSubmit(async (values) => {
 
       <div class="flex justify-end">
         <RouterLink to="/forgot-password" class="text-sm font-medium text-primary-600 hover:underline">
-          Forgot password?
+          {{ t('auth.forgotPassword') }}
         </RouterLink>
       </div>
 
-      <BaseButton type="submit" block :loading="auth.loading">Sign in</BaseButton>
+      <BaseButton type="submit" block :loading="auth.loading">{{ t('auth.signIn') }}</BaseButton>
     </form>
 
     <p class="mt-6 text-center text-sm text-slate-500">
-      Don't have an account?
-      <RouterLink to="/register" class="font-medium text-primary-600 hover:underline">Create one</RouterLink>
+      {{ t('auth.noAccount') }}
+      <RouterLink to="/register" class="font-medium text-primary-600 hover:underline">
+        {{ t('auth.createOne') }}
+      </RouterLink>
     </p>
   </AuthCard>
 </template>

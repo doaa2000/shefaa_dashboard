@@ -5,6 +5,6 @@ export const settingsRoutes: RouteRecordRaw[] = [
     path: '/settings',
     name: 'settings',
     component: () => import('./presentation/pages/SettingsPage.vue'),
-    meta: { title: 'Settings' },
+    meta: { titleKey: 'nav.settings' },
   },
 ]

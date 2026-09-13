@@ -1,4 +1,5 @@
 <script setup lang="ts" generic="T extends { id: string | number }">
+import { useI18n } from 'vue-i18n'
 import BaseSkeleton from './BaseSkeleton.vue'
 import BaseEmptyState from './BaseEmptyState.vue'
 
@@ -19,6 +20,8 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{ rowClick: [row: T] }>()
+
+const { t } = useI18n()
 </script>
 
 <template>
@@ -32,7 +35,7 @@ const emit = defineEmits<{ rowClick: [row: T] }>()
             :style="col.width ? { width: col.width } : undefined"
             :class="[
               'px-4 py-3 font-medium text-slate-500',
-              col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left',
+              col.align === 'right' ? 'text-end' : col.align === 'center' ? 'text-center' : 'text-start',
             ]"
           >
             {{ col.label }}
@@ -47,7 +50,7 @@ const emit = defineEmits<{ rowClick: [row: T] }>()
         </tr>
         <tr v-else-if="rows.length === 0">
           <td :colspan="columns.length">
-            <BaseEmptyState :title="emptyTitle ?? 'Nothing here yet'" :description="emptyDescription" />
+            <BaseEmptyState :title="emptyTitle ?? t('common.nothingHere')" :description="emptyDescription" />
           </td>
         </tr>
         <tr
@@ -62,7 +65,7 @@ const emit = defineEmits<{ rowClick: [row: T] }>()
             :key="col.key"
             :class="[
               'px-4 py-3 text-slate-700',
-              col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left',
+              col.align === 'right' ? 'text-end' : col.align === 'center' ? 'text-center' : 'text-start',
             ]"
           >
             <slot :name="`cell:${col.key}`" :row="row" :value="(row as Record<string, unknown>)[col.key]">

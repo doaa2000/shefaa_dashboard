@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useI18n } from 'vue-i18n'
 import { useQueueStore } from '../../store/queue.store'
 import { useToast } from '@/shared/composables/useToast'
 import { formatDate } from '@/shared/utils/datetime'
@@ -10,6 +11,7 @@ import { BaseBadge, BaseButton, BaseCard, BaseEmptyState, BaseSpinner } from '@/
 
 const store = useQueueStore()
 const toast = useToast()
+const { t } = useI18n()
 const { date, sessions, loading, advancing, isEmpty, error } = storeToRefs(store)
 
 const dateInput = ref(date.value)
@@ -21,7 +23,7 @@ watch(dateInput, (value) => {
 })
 
 function sessionLabel(session: string): string {
-  return session === 'morning' ? 'Morning' : 'Evening'
+  return t(session === 'morning' ? 'session.morning' : 'session.evening')
 }
 
 /** "Evening · 18:00 - 21:00", which is what the patient was told to arrive in. */
@@ -36,11 +38,11 @@ async function settle(entry: QueueEntry, status: 'completed' | 'no_show') {
   const ok = await store.settle(entry.id, status)
   if (ok) {
     toast.success(
-      status === 'completed' ? 'Marked as seen' : 'Marked as no show',
+      t(status === 'completed' ? 'queue.markedSeen' : 'queue.markedNoShow'),
       entry.patientName ?? `#${entry.position}`,
     )
   } else if (store.error) {
-    toast.error('Could not update', store.error.message)
+    toast.error(t('queue.couldNotUpdate'), store.error.message)
   }
 }
 </script>
@@ -49,9 +51,9 @@ async function settle(entry: QueueEntry, status: 'completed' | 'no_show') {
   <div class="space-y-5">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
-        <h1 class="text-xl font-semibold text-slate-900">Today's queue</h1>
+        <h1 class="text-xl font-semibold text-slate-900">{{ t('queue.title') }}</h1>
         <p class="text-sm text-slate-500">
-          Call patients in order — {{ formatDate(date) }}
+          {{ t('queue.subtitle', { date: formatDate(date) }) }}
         </p>
       </div>
       <div class="flex items-center gap-2">
@@ -60,7 +62,9 @@ async function settle(entry: QueueEntry, status: 'completed' | 'no_show') {
           type="date"
           class="rounded-xl border border-surface-border px-3 py-2 text-sm text-slate-700 focus:border-primary-400 focus:outline-none"
         />
-        <BaseButton variant="outline" :loading="loading" @click="store.load()">Refresh</BaseButton>
+        <BaseButton variant="outline" :loading="loading" @click="store.load()">
+          {{ t('common.refresh') }}
+        </BaseButton>
       </div>
     </div>
 
@@ -69,13 +73,13 @@ async function settle(entry: QueueEntry, status: 'completed' | 'no_show') {
     </div>
 
     <BaseCard v-else-if="error" padded>
-      <BaseEmptyState title="Nothing to show" :description="error.message" />
+      <BaseEmptyState :title="t('queue.nothingToShow')" :description="error.message" />
     </BaseCard>
 
     <BaseCard v-else-if="isEmpty" padded>
       <BaseEmptyState
-        title="Nobody booked for this day"
-        :description="`Patients who book for ${formatDate(date)} appear here, in the order they booked. Check the date if you are expecting someone.`"
+        :title="t('queue.emptyTitle')"
+        :description="t('queue.emptyBody', { date: formatDate(date) })"
       />
     </BaseCard>
 
@@ -88,7 +92,7 @@ async function settle(entry: QueueEntry, status: 'completed' | 'no_show') {
       <template #header>
         <h3 class="text-sm font-semibold text-slate-800">{{ windowLabel(queue) }}</h3>
         <p class="mt-0.5 text-xs text-slate-500">
-          {{ queue.done.length }} of {{ queue.entries.length }} seen
+          {{ t('queue.seenOf', { done: queue.done.length, total: queue.entries.length }) }}
         </p>
       </template>
 
@@ -97,7 +101,7 @@ async function settle(entry: QueueEntry, status: 'completed' | 'no_show') {
         v-if="queue.current"
         class="rounded-2xl border border-primary-200 bg-primary-50 p-5"
       >
-        <p class="text-xs font-medium uppercase tracking-wide text-primary-700">Now serving</p>
+        <p class="text-xs font-medium uppercase tracking-wide text-primary-700">{{ t('queue.nowServing') }}</p>
         <div class="mt-2 flex flex-wrap items-center justify-between gap-4">
           <div class="flex items-center gap-4">
             <span
@@ -107,10 +111,10 @@ async function settle(entry: QueueEntry, status: 'completed' | 'no_show') {
             </span>
             <div>
               <p class="text-lg font-semibold text-slate-900">
-                {{ queue.current.patientName ?? 'Unnamed patient' }}
+                {{ queue.current.patientName ?? t('queue.unnamed') }}
               </p>
               <p class="text-sm text-slate-600">
-                {{ queue.waiting.length }} still waiting
+                {{ t('queue.stillWaiting', { count: queue.waiting.length }) }}
               </p>
             </div>
           </div>
@@ -120,14 +124,14 @@ async function settle(entry: QueueEntry, status: 'completed' | 'no_show') {
               :disabled="advancing !== null"
               @click="settle(queue.current, 'no_show')"
             >
-              No show
+              {{ t('queue.noShow') }}
             </BaseButton>
             <BaseButton
               size="lg"
               :loading="advancing === queue.current.id"
               @click="settle(queue.current, 'completed')"
             >
-              Seen — next patient
+              {{ t('queue.seenNext') }}
             </BaseButton>
           </div>
         </div>
@@ -137,12 +141,12 @@ async function settle(entry: QueueEntry, status: 'completed' | 'no_show') {
         v-else
         class="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-800"
       >
-        Everyone booked into this time has been seen.
+        {{ t('queue.allSeen') }}
       </div>
 
       <!-- Waiting -->
       <div v-if="queue.waiting.length" class="mt-5">
-        <p class="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Waiting</p>
+        <p class="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">{{ t('queue.waiting') }}</p>
         <ul class="divide-y divide-surface-border rounded-xl border border-surface-border">
           <li
             v-for="entry in queue.waiting"
@@ -156,7 +160,7 @@ async function settle(entry: QueueEntry, status: 'completed' | 'no_show') {
                 {{ entry.position }}
               </span>
               <span class="text-sm text-slate-700">
-                {{ entry.patientName ?? 'Unnamed patient' }}
+                {{ entry.patientName ?? t('queue.unnamed') }}
               </span>
             </div>
             <BaseBadge :tone="statusTone(entry.status)">{{ statusLabel(entry.status) }}</BaseBadge>
@@ -166,7 +170,7 @@ async function settle(entry: QueueEntry, status: 'completed' | 'no_show') {
 
       <!-- Already dealt with -->
       <div v-if="queue.done.length" class="mt-5">
-        <p class="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Done</p>
+        <p class="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">{{ t('queue.done') }}</p>
         <ul class="divide-y divide-surface-border rounded-xl border border-surface-border opacity-70">
           <li
             v-for="entry in queue.done"
@@ -180,7 +184,7 @@ async function settle(entry: QueueEntry, status: 'completed' | 'no_show') {
                 {{ entry.position }}
               </span>
               <span class="text-sm text-slate-500 line-through">
-                {{ entry.patientName ?? 'Unnamed patient' }}
+                {{ entry.patientName ?? t('queue.unnamed') }}
               </span>
             </div>
             <BaseBadge :tone="statusTone(entry.status)">{{ statusLabel(entry.status) }}</BaseBadge>

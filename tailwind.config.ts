@@ -36,7 +36,9 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        // Cairo after Inter: the Latin glyphs still come from Inter, and the
+        // Arabic ones from a font that has them.
+        sans: ['Inter', 'Cairo', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         xl: '0.875rem',
