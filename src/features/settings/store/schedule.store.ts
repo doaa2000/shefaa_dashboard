@@ -9,7 +9,7 @@ import type {
   CreateScheduleInput,
   UpdateScheduleInput,
 } from '../domain/schedule.models'
-import { WEEKDAY_OPTIONS } from '../domain/schedule.models'
+import { weekdayOptions } from '../domain/schedule.models'
 
 export const useScheduleStore = defineStore('schedules', () => {
   const service = container.scheduleService
@@ -22,7 +22,7 @@ export const useScheduleStore = defineStore('schedules', () => {
 
   /** The week in order, so the list reads like a week rather than insertion order. */
   const byWeekday = computed(() =>
-    WEEKDAY_OPTIONS.map((day) => ({
+    weekdayOptions().map((day) => ({
       ...day,
       entries: items.value
         .filter((e) => e.weekday === day.value)

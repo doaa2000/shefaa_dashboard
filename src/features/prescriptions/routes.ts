@@ -5,6 +5,6 @@ export const prescriptionRoutes: RouteRecordRaw[] = [
     path: '/prescriptions',
     name: 'prescriptions',
     component: () => import('./presentation/pages/PrescriptionsListPage.vue'),
-    meta: { title: 'Prescriptions' },
+    meta: { titleKey: 'nav.prescriptions' },
   },
 ]

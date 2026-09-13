@@ -5,6 +5,6 @@ export const reportRoutes: RouteRecordRaw[] = [
     path: '/reports',
     name: 'reports',
     component: () => import('./presentation/pages/ReportsPage.vue'),
-    meta: { title: 'Reports' },
+    meta: { titleKey: 'nav.reports' },
   },
 ]

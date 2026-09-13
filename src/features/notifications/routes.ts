@@ -5,6 +5,6 @@ export const notificationRoutes: RouteRecordRaw[] = [
     path: '/notifications',
     name: 'notifications',
     component: () => import('./presentation/pages/NotificationsPage.vue'),
-    meta: { title: 'Notifications' },
+    meta: { titleKey: 'nav.notifications' },
   },
 ]

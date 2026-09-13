@@ -27,7 +27,7 @@ const routes: RouteRecordRaw[] = [
     path: '/:pathMatch(.*)*',
     name: 'not-found',
     component: () => import('@/shared/components/NotFoundPage.vue'),
-    meta: { title: 'Not found' },
+    meta: { titleKey: 'nav.notFound' },
   },
 ]
 

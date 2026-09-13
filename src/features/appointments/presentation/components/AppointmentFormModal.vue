@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { watch } from 'vue'
+import { computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { appointmentSchema, type AppointmentFormValues } from '../../domain/appointment.schema'
-import { STATUS_OPTIONS } from '../../domain/appointment.labels'
-import { SESSION_OPTIONS } from '@/features/settings/domain/schedule.models'
+import { statusOptions } from '../../domain/appointment.labels'
+import { sessionOptions } from '@/features/settings/domain/schedule.models'
 import type { Appointment } from '../../domain/appointment.models'
 import { usePatientOptions } from '@/features/patients/application/usePatientOptions'
 import { BaseButton, BaseInput, BaseModal, BaseSelect, FormField } from '@/shared/ui'
@@ -16,9 +17,15 @@ const emit = defineEmits<{
 }>()
 
 const { options: patientOptions } = usePatientOptions()
+const { t } = useI18n()
+
+const statuses = computed(() => statusOptions())
+const sessions = computed(() => sessionOptions())
 
 const { defineField, handleSubmit, errors, resetForm } = useForm<AppointmentFormValues>({
-  validationSchema: toTypedSchema(appointmentSchema),
+  // A computed schema, so the messages follow a language change instead of
+  // staying in whichever one the form was opened in.
+  validationSchema: computed(() => toTypedSchema(appointmentSchema())),
   initialValues: { status: 'pending' },
 })
 
@@ -63,34 +70,38 @@ const onSubmit = handleSubmit((values) => emit('submit', values))
 <template>
   <BaseModal
     :model-value="modelValue"
-    :title="appointment ? 'Edit appointment' : 'New appointment'"
+    :title="t(appointment ? 'appointments.modal.editTitle' : 'appointments.modal.newTitle')"
     size="lg"
     @update:model-value="emit('update:modelValue', $event)"
   >
     <form id="appointment-form" class="grid grid-cols-1 gap-4 sm:grid-cols-2" @submit="onSubmit">
-      <FormField class="sm:col-span-2" label="Patient" :error="errors.patientId" required>
-        <BaseSelect v-model="patientId" :options="patientOptions" placeholder="Select a patient" :invalid="!!errors.patientId" />
+      <FormField class="sm:col-span-2" :label="t('appointments.modal.patient')" :error="errors.patientId" required>
+        <BaseSelect v-model="patientId" :options="patientOptions" :placeholder="t('appointments.modal.selectPatient')" :invalid="!!errors.patientId" />
       </FormField>
-      <FormField label="Date" :error="errors.bookedDate" required>
+      <FormField :label="t('appointments.modal.date')" :error="errors.bookedDate" required>
         <BaseInput v-model="bookedDate" v-bind="dateAttrs" type="date" :invalid="!!errors.bookedDate" />
       </FormField>
-      <FormField label="Session" :error="errors.session" required>
-        <BaseSelect v-model="session" :options="SESSION_OPTIONS" :placeholder="undefined" :invalid="!!errors.session" />
+      <FormField :label="t('appointments.modal.session')" :error="errors.session" required>
+        <BaseSelect v-model="session" :options="sessions" :placeholder="undefined" :invalid="!!errors.session" />
       </FormField>
-      <FormField label="Status">
-        <BaseSelect v-model="status" :options="STATUS_OPTIONS" :placeholder="undefined" />
+      <FormField :label="t('appointments.modal.status')">
+        <BaseSelect v-model="status" :options="statuses" :placeholder="undefined" />
       </FormField>
-      <FormField label="Start time" :error="errors.startTime" required>
+      <FormField :label="t('appointments.modal.startTime')" :error="errors.startTime" required>
         <BaseInput v-model="startTime" v-bind="startAttrs" type="time" :invalid="!!errors.startTime" />
       </FormField>
-      <FormField label="End time" :error="errors.endTime" required>
+      <FormField :label="t('appointments.modal.endTime')" :error="errors.endTime" required>
         <BaseInput v-model="endTime" v-bind="endAttrs" type="time" :invalid="!!errors.endTime" />
       </FormField>
     </form>
     <template #footer>
       <div class="flex justify-end gap-3">
-        <BaseButton variant="outline" @click="emit('update:modelValue', false)">Cancel</BaseButton>
-        <BaseButton type="submit" form="appointment-form" :loading="saving">Save appointment</BaseButton>
+        <BaseButton variant="outline" @click="emit('update:modelValue', false)">
+          {{ t('common.cancel') }}
+        </BaseButton>
+        <BaseButton type="submit" form="appointment-form" :loading="saving">
+          {{ t('appointments.modal.save') }}
+        </BaseButton>
       </div>
     </template>
   </BaseModal>

@@ -1,10 +1,20 @@
-export const STATUS_OPTIONS: { label: string; value: string }[] = [
-  { label: 'Pending', value: 'pending' },
-  { label: 'Confirmed', value: 'confirmed' },
-  { label: 'Completed', value: 'completed' },
-  { label: 'Cancelled', value: 'cancelled' },
-  { label: 'No show', value: 'no_show' },
-]
+import { t } from '@/app/i18n'
+
+export const STATUS_VALUES = [
+  'pending',
+  'confirmed',
+  'completed',
+  'cancelled',
+  'no_show',
+] as const
+
+/**
+ * Built on read, not once at import: a list of labels frozen at module load
+ * keeps the language the app started in after the reader switches.
+ */
+export function statusOptions(): { label: string; value: string }[] {
+  return STATUS_VALUES.map((value) => ({ label: t(`status.${value}`), value }))
+}
 
 type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger' | 'primary'
 
@@ -22,5 +32,7 @@ export function statusTone(status: string | null): Tone {
 
 export function statusLabel(status: string | null): string {
   if (!status) return '—'
-  return STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status
+  const key = `status.${status}`
+  const translated = t(key)
+  return translated === key ? status : translated
 }

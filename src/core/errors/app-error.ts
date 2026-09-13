@@ -3,6 +3,8 @@
  * returns one of these via Result<T, AppError>, so the presentation layer can
  * branch on `kind` without knowing about Supabase/Postgrest internals.
  */
+import { t } from '@/app/i18n'
+
 export type AppErrorKind =
   | 'network'
   | 'auth'
@@ -30,31 +32,34 @@ export class AppError extends Error {
     this.fields = options?.fields
   }
 
-  static network(message = 'A network error occurred. Please try again.', cause?: unknown) {
-    return new AppError('network', message, { cause })
+  // The default messages are read when the error is raised, not when the class
+  // is defined: a default evaluated at import time would be written in the
+  // language the app started in and stay there.
+  static network(message?: string, cause?: unknown) {
+    return new AppError('network', message ?? t('errors.network'), { cause })
   }
 
-  static auth(message = 'Authentication failed.', cause?: unknown) {
-    return new AppError('auth', message, { cause })
+  static auth(message?: string, cause?: unknown) {
+    return new AppError('auth', message ?? t('errors.auth'), { cause })
   }
 
-  static validation(message = 'Validation failed.', fields?: Record<string, string>) {
-    return new AppError('validation', message, { fields })
+  static validation(message?: string, fields?: Record<string, string>) {
+    return new AppError('validation', message ?? t('errors.validation'), { fields })
   }
 
-  static notFound(message = 'The requested resource was not found.', cause?: unknown) {
-    return new AppError('not_found', message, { cause })
+  static notFound(message?: string, cause?: unknown) {
+    return new AppError('not_found', message ?? t('errors.notFound'), { cause })
   }
 
-  static permission(message = 'You do not have permission to perform this action.', cause?: unknown) {
-    return new AppError('permission', message, { cause })
+  static permission(message?: string, cause?: unknown) {
+    return new AppError('permission', message ?? t('errors.permission'), { cause })
   }
 
-  static conflict(message = 'This action conflicts with existing data.', cause?: unknown) {
-    return new AppError('conflict', message, { cause })
+  static conflict(message?: string, cause?: unknown) {
+    return new AppError('conflict', message ?? t('errors.conflict'), { cause })
   }
 
-  static unknown(message = 'Something went wrong. Please try again.', cause?: unknown) {
-    return new AppError('unknown', message, { cause })
+  static unknown(message?: string, cause?: unknown) {
+    return new AppError('unknown', message ?? t('errors.unknown'), { cause })
   }
 }

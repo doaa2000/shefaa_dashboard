@@ -1,37 +1,45 @@
 /** Date/time formatting helpers (Intl-based, locale-aware). */
 
-const dateFmt = new Intl.DateTimeFormat('en-GB', {
-  day: '2-digit',
-  month: 'short',
-  year: 'numeric',
-})
+import { intlLocale } from '@/app/i18n'
 
-const timeFmt = new Intl.DateTimeFormat('en-GB', {
-  hour: '2-digit',
-  minute: '2-digit',
-})
+// Built per call rather than once at module load: the locale can change while
+// the app is running, and a formatter captured at import time would keep
+// printing the language the reader just switched away from.
+function dateFmt() {
+  return new Intl.DateTimeFormat(intlLocale(), {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+}
 
-const dateTimeFmt = new Intl.DateTimeFormat('en-GB', {
-  day: '2-digit',
-  month: 'short',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-})
+function timeFmt() {
+  return new Intl.DateTimeFormat(intlLocale(), { hour: '2-digit', minute: '2-digit' })
+}
+
+function dateTimeFmt() {
+  return new Intl.DateTimeFormat(intlLocale(), {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
 
 export function formatDate(value: string | Date | null | undefined): string {
   if (!value) return '—'
-  return dateFmt.format(new Date(value))
+  return dateFmt().format(new Date(value))
 }
 
 export function formatTime(value: string | Date | null | undefined): string {
   if (!value) return '—'
-  return timeFmt.format(new Date(value))
+  return timeFmt().format(new Date(value))
 }
 
 export function formatDateTime(value: string | Date | null | undefined): string {
   if (!value) return '—'
-  return dateTimeFmt.format(new Date(value))
+  return dateTimeFmt().format(new Date(value))
 }
 
 export function calculateAge(dob: string | Date | null | undefined): number | null {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { watch } from 'vue'
+import { computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useI18n } from 'vue-i18n'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { profileSchema, type ProfileFormValues } from '../../domain/schedule.schema'
@@ -10,10 +11,13 @@ import { BaseButton, BaseCard, BaseInput, FormField } from '@/shared/ui'
 
 const auth = useAuthStore()
 const toast = useToast()
+const { t } = useI18n()
 const { profile, loading } = storeToRefs(auth)
 
 const { defineField, handleSubmit, errors, resetForm } = useForm<ProfileFormValues>({
-  validationSchema: toTypedSchema(profileSchema),
+  // A computed schema, so the messages follow a language change instead of
+  // staying in whichever one the form was opened in.
+  validationSchema: computed(() => toTypedSchema(profileSchema())),
   initialValues: { name: '' },
 })
 
@@ -48,36 +52,36 @@ watch(
 
 const onSubmit = handleSubmit(async (values) => {
   const ok = await auth.updateProfile(values)
-  if (ok) toast.success('Profile saved')
-  else if (auth.error) toast.error('Could not save profile', auth.error.message)
+  if (ok) toast.success(t('settings.profileSaved'))
+  else if (auth.error) toast.error(t('settings.profileSaveFailed'), auth.error.message)
 })
 </script>
 
 <template>
-  <BaseCard title="Profile" subtitle="Your professional details">
+  <BaseCard :title="t('settings.profile')" :subtitle="t('settings.profileSubtitle')">
     <form class="grid grid-cols-1 gap-4 sm:grid-cols-2" @submit="onSubmit">
-      <FormField label="Name" :error="errors.name" required>
+      <FormField :label="t('settings.name')" :error="errors.name" required>
         <BaseInput v-model="name" v-bind="nameAttrs" :invalid="!!errors.name" />
       </FormField>
-      <FormField label="Title" :error="errors.title">
-        <BaseInput v-model="title" v-bind="titleAttrs" placeholder="e.g. Consultant" />
+      <FormField :label="t('settings.jobTitle')" :error="errors.title">
+        <BaseInput v-model="title" v-bind="titleAttrs" :placeholder="t('settings.jobTitlePlaceholder')" />
       </FormField>
-      <FormField label="Specialization" :error="errors.specialization">
+      <FormField :label="t('settings.specialization')" :error="errors.specialization">
         <BaseInput v-model="specialization" v-bind="specAttrs" />
       </FormField>
-      <FormField label="Phone" :error="errors.phone">
+      <FormField :label="t('settings.phone')" :error="errors.phone">
         <BaseInput v-model="phone" v-bind="phoneAttrs" />
       </FormField>
-      <FormField label="License number" :error="errors.licenseNumber">
+      <FormField :label="t('settings.licenseNumber')" :error="errors.licenseNumber">
         <BaseInput v-model="licenseNumber" v-bind="licenseAttrs" />
       </FormField>
-      <FormField label="Location" :error="errors.location">
+      <FormField :label="t('settings.location')" :error="errors.location">
         <BaseInput v-model="location" v-bind="locationAttrs" />
       </FormField>
-      <FormField label="Consultation fee" :error="errors.consultationFee">
+      <FormField :label="t('settings.consultationFee')" :error="errors.consultationFee">
         <BaseInput v-model="consultationFee" v-bind="feeAttrs" type="number" />
       </FormField>
-      <FormField class="sm:col-span-2" label="Bio" :error="errors.bio">
+      <FormField class="sm:col-span-2" :label="t('settings.bio')" :error="errors.bio">
         <textarea
           v-model="bio"
           v-bind="bioAttrs"
@@ -86,7 +90,7 @@ const onSubmit = handleSubmit(async (values) => {
         />
       </FormField>
       <div class="sm:col-span-2">
-        <BaseButton type="submit" :loading="loading">Save profile</BaseButton>
+        <BaseButton type="submit" :loading="loading">{{ t('settings.saveProfile') }}</BaseButton>
       </div>
     </form>
   </BaseCard>
