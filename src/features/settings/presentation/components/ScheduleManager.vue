@@ -1,14 +1,15 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useI18n } from 'vue-i18n'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { useScheduleStore } from '../../store/schedule.store'
 import { scheduleSchema, type ScheduleFormValues } from '../../domain/schedule.schema'
 import {
-  SESSION_OPTIONS,
-  SLOT_OPTIONS,
-  WEEKDAY_OPTIONS,
+  sessionOptions,
+  slotOptions,
+  weekdayOptions,
   WHOLE_SESSION,
   minutesPerPatient,
   slotLabel,
@@ -16,7 +17,7 @@ import {
   type ScheduleEntry,
 } from '../../domain/schedule.models'
 import { useToast } from '@/shared/composables/useToast'
-import { titleCase } from '@/shared/utils/formatters'
+import { labelFor } from '@/shared/utils/formatters'
 import {
   BaseButton,
   BaseCard,
@@ -29,6 +30,11 @@ import {
 
 const store = useScheduleStore()
 const toast = useToast()
+const { t } = useI18n()
+
+const weekdays = computed(() => weekdayOptions())
+const sessions = computed(() => sessionOptions())
+const slots = computed(() => slotOptions())
 const { byWeekday, items, loading, saving, totalWeeklyCapacity } = storeToRefs(store)
 
 const DEFAULTS: Partial<ScheduleFormValues> = {
@@ -42,7 +48,9 @@ const DEFAULTS: Partial<ScheduleFormValues> = {
 }
 
 const { defineField, handleSubmit, errors, resetForm } = useForm<ScheduleFormValues>({
-  validationSchema: toTypedSchema(scheduleSchema),
+  // A computed schema, so the messages follow a language change instead of
+  // staying in whichever one the form was opened in.
+  validationSchema: computed(() => toTypedSchema(scheduleSchema())),
   initialValues: DEFAULTS,
 })
 
@@ -63,54 +71,51 @@ const onSubmit = handleSubmit(async (values) => {
     slotMinutes: toSlotMinutes(values.slotMinutes),
   })
   if (ok) {
-    toast.success('Session added to your week')
+    toast.success(t('settings.sessionAdded'))
     resetForm({ values: DEFAULTS })
   } else if (store.error) {
     // The unique index on (doctor, weekday, session) is the likely cause, and
     // "duplicate key value violates..." tells the doctor nothing.
     const duplicate = store.error.message?.includes('duplicate key')
     toast.error(
-      duplicate ? 'That day already has this session' : 'Could not add the session',
-      duplicate ? 'Edit the existing one instead of adding a second.' : store.error.message,
+      t(duplicate ? 'settings.duplicateTitle' : 'settings.addFailed'),
+      duplicate ? t('settings.duplicateBody') : store.error.message,
     )
   }
 })
 
 async function onRemove(entry: ScheduleEntry) {
-  if (await store.remove(entry.id)) toast.success('Session removed')
+  if (await store.remove(entry.id)) toast.success(t('settings.sessionRemoved'))
 }
 
 async function onToggle(entry: ScheduleEntry) {
   if (await store.toggleActive(entry)) {
-    toast.success(entry.isActive ? 'Session paused' : 'Session resumed')
+    toast.success(t(entry.isActive ? 'settings.sessionPaused' : 'settings.sessionResumed'))
   }
 }
 
 function pace(entry: ScheduleEntry): string {
   const minutes = minutesPerPatient(entry)
-  return minutes ? `≈ ${minutes} min each` : ''
+  return minutes ? t('settings.perPatient', { minutes }) : ''
 }
 </script>
 
 <template>
-  <BaseCard
-    title="Weekly schedule"
-    subtitle="The days you work. Availability for every date is worked out from this, so there is nothing to keep topping up."
-  >
+  <BaseCard :title="t('settings.schedule')" :subtitle="t('settings.scheduleSubtitle')">
     <form class="grid grid-cols-1 gap-3 sm:grid-cols-6" @submit="onSubmit">
-      <FormField label="Day">
-        <BaseSelect v-model="weekday" :options="WEEKDAY_OPTIONS" :placeholder="undefined" />
+      <FormField :label="t('settings.day')">
+        <BaseSelect v-model="weekday" :options="weekdays" :placeholder="undefined" />
       </FormField>
-      <FormField label="Session">
-        <BaseSelect v-model="session" :options="SESSION_OPTIONS" :placeholder="undefined" />
+      <FormField :label="t('settings.session')">
+        <BaseSelect v-model="session" :options="sessions" :placeholder="undefined" />
       </FormField>
-      <FormField label="Start" :error="errors.startTime">
+      <FormField :label="t('settings.start')" :error="errors.startTime">
         <BaseInput v-model="startTime" v-bind="startAttrs" type="time" :invalid="!!errors.startTime" />
       </FormField>
-      <FormField label="End" :error="errors.endTime">
+      <FormField :label="t('settings.end')" :error="errors.endTime">
         <BaseInput v-model="endTime" v-bind="endAttrs" type="time" :invalid="!!errors.endTime" />
       </FormField>
-      <FormField label="Patients" :error="errors.capacity">
+      <FormField :label="t('settings.patients')" :error="errors.capacity">
         <BaseInput
           v-model="capacity"
           v-bind="capacityAttrs"
@@ -119,30 +124,22 @@ function pace(entry: ScheduleEntry): string {
           :invalid="!!errors.capacity"
         />
       </FormField>
-      <FormField label="Appointments">
-        <BaseSelect v-model="slotMinutes" :options="SLOT_OPTIONS" :placeholder="undefined" />
+      <FormField :label="t('settings.appointmentsField')">
+        <BaseSelect v-model="slotMinutes" :options="slots" :placeholder="undefined" />
       </FormField>
       <div class="flex items-end sm:col-span-6">
-        <BaseButton type="submit" block :loading="saving">Add</BaseButton>
+        <BaseButton type="submit" block :loading="saving">{{ t('common.add') }}</BaseButton>
       </div>
     </form>
 
-    <p class="mt-2 text-xs text-slate-500">
-      “Patients” is how many you see in that session — your own number, not a calculation.
-      A session that runs long for some patients and short for others still has one honest total.
-    </p>
-    <p class="mt-1 text-xs text-slate-500">
-      “Appointments” decides what a patient is told. <strong>Whole session</strong> shows them the
-      session as one window and asks them to arrive in it — right for a clinic that sees people in
-      the order they walk in. A length splits the session into separate times to book, and the
-      patients are spread across them.
-    </p>
+    <p class="mt-2 text-xs text-slate-500">{{ t('settings.patientsNote') }}</p>
+    <p class="mt-1 text-xs text-slate-500">{{ t('settings.appointmentsNote') }}</p>
 
     <div class="mt-5">
       <BaseEmptyState
         v-if="!loading && items.length === 0"
-        title="No working days yet"
-        description="Add the days you see patients. Every bookable date is derived from them."
+        :title="t('settings.noDaysTitle')"
+        :description="t('settings.noDaysBody')"
       />
 
       <div v-else class="space-y-1">
@@ -155,7 +152,7 @@ function pace(entry: ScheduleEntry): string {
             {{ day.label }}
           </div>
 
-          <div v-if="day.entries.length === 0" class="pt-0.5 text-sm text-slate-400">Off</div>
+          <div v-if="day.entries.length === 0" class="pt-0.5 text-sm text-slate-400">{{ t('settings.off') }}</div>
 
           <ul v-else class="flex-1 space-y-2">
             <li
@@ -165,21 +162,21 @@ function pace(entry: ScheduleEntry): string {
             >
               <div class="flex flex-wrap items-center gap-3">
                 <BaseBadge :tone="entry.isActive ? 'primary' : 'neutral'">
-                  {{ titleCase(entry.session) }}
+                  {{ labelFor('session', entry.session) }}
                 </BaseBadge>
                 <span class="text-sm text-slate-700">
                   {{ entry.startTime.slice(0, 5) }} – {{ entry.endTime.slice(0, 5) }}
                 </span>
-                <span class="text-sm text-slate-600">{{ entry.capacity }} patients</span>
+                <span class="text-sm text-slate-600">{{ t('settings.patientsCount', { count: entry.capacity }) }}</span>
                 <BaseBadge tone="neutral">{{ slotLabel(entry) }}</BaseBadge>
                 <span class="text-xs text-slate-400">{{ pace(entry) }}</span>
-                <BaseBadge v-if="!entry.isActive" tone="neutral">Paused</BaseBadge>
+                <BaseBadge v-if="!entry.isActive" tone="neutral">{{ t('settings.paused') }}</BaseBadge>
               </div>
               <div class="flex items-center gap-1">
                 <BaseButton size="sm" variant="ghost" @click="onToggle(entry)">
-                  {{ entry.isActive ? 'Pause' : 'Resume' }}
+                  {{ t(entry.isActive ? 'settings.pause' : 'settings.resume') }}
                 </BaseButton>
-                <BaseButton size="sm" variant="ghost" @click="onRemove(entry)">Remove</BaseButton>
+                <BaseButton size="sm" variant="ghost" @click="onRemove(entry)">{{ t('common.remove') }}</BaseButton>
               </div>
             </li>
           </ul>
@@ -187,7 +184,7 @@ function pace(entry: ScheduleEntry): string {
       </div>
 
       <p v-if="items.length > 0" class="mt-4 text-sm text-slate-500">
-        {{ totalWeeklyCapacity }} patients a week across your active sessions.
+        {{ t('settings.weeklyTotal', { count: totalWeeklyCapacity }) }}
       </p>
     </div>
   </BaseCard>

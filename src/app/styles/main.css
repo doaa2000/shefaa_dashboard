@@ -1,4 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* Inter has no Arabic glyphs at all, so without this the Arabic interface
+   falls back to whatever the operating system happens to pick -- which on
+   Windows is a font that looks nothing like the rest of the page. */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;

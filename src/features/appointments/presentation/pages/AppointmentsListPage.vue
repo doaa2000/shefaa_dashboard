@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useI18n } from 'vue-i18n'
 import { useAppointmentStore } from '../../store/appointment.store'
 import { usePagination } from '@/shared/composables/usePagination'
 import { useToast } from '@/shared/composables/useToast'
 import { formatDate } from '@/shared/utils/datetime'
-import { STATUS_OPTIONS, statusLabel, statusTone } from '../../domain/appointment.labels'
+import { statusOptions, statusLabel, statusTone } from '../../domain/appointment.labels'
 import AppointmentFormModal from '../components/AppointmentFormModal.vue'
 import type { AppointmentFormValues } from '../../domain/appointment.schema'
 import type { Appointment } from '../../domain/appointment.models'
@@ -13,6 +14,7 @@ import { BaseBadge, BaseButton, BaseSelect, BasePagination, BaseTable, type Colu
 
 const store = useAppointmentStore()
 const toast = useToast()
+const { t } = useI18n()
 const { items, total, loading, saving, error } = storeToRefs(store)
 
 const pagination = usePagination({ pageSize: 10 })
@@ -20,13 +22,15 @@ const statusFilter = ref<string>('')
 const modalOpen = ref(false)
 const editing = ref<Appointment | null>(null)
 
-const columns: Column[] = [
-  { key: 'bookedDate', label: 'Date' },
-  { key: 'time', label: 'Time' },
-  { key: 'patientName', label: 'Patient' },
-  { key: 'status', label: 'Status', align: 'center' },
+const columns = computed<Column[]>(() => [
+  { key: 'bookedDate', label: t('appointments.columns.date') },
+  { key: 'time', label: t('appointments.columns.time') },
+  { key: 'patientName', label: t('appointments.columns.patient') },
+  { key: 'status', label: t('appointments.columns.status'), align: 'center' },
   { key: 'actions', label: '', align: 'right' },
-]
+])
+
+const statuses = computed(() => statusOptions())
 
 async function load() {
   await store.fetchList({
@@ -54,16 +58,16 @@ async function onSubmit(values: AppointmentFormValues) {
     ? await store.update(editing.value.id, values)
     : await store.create(values)
   if (saved) {
-    toast.success(editing.value ? 'Appointment updated' : 'Appointment created')
+    toast.success(t(editing.value ? 'appointments.updated' : 'appointments.created'))
     modalOpen.value = false
     await load()
   } else if (store.error) {
-    toast.error('Could not save appointment', store.error.message)
+    toast.error(t('appointments.saveFailed'), store.error.message)
   }
 }
 
 async function changeStatus(a: Appointment, status: string) {
-  if (await store.setStatus(a.id, status)) toast.success('Status updated', statusLabel(status))
+  if (await store.setStatus(a.id, status)) toast.success(t('appointments.statusUpdated'), statusLabel(status))
 }
 </script>
 
@@ -71,16 +75,16 @@ async function changeStatus(a: Appointment, status: string) {
   <div class="space-y-5">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
-        <h1 class="text-xl font-semibold text-slate-900">Appointments</h1>
-        <p class="text-sm text-slate-500">Your bookings</p>
+        <h1 class="text-xl font-semibold text-slate-900">{{ t('appointments.title') }}</h1>
+        <p class="text-sm text-slate-500">{{ t('appointments.subtitle') }}</p>
       </div>
-      <BaseButton @click="openCreate">+ New appointment</BaseButton>
+      <BaseButton @click="openCreate">{{ t('appointments.newAppointment') }}</BaseButton>
     </div>
 
     <div class="max-w-xs">
       <BaseSelect
         v-model="statusFilter"
-        :options="[{ label: 'All statuses', value: '' }, ...STATUS_OPTIONS]"
+        :options="[{ label: t('appointments.allStatuses'), value: '' }, ...statuses]"
         :placeholder="undefined"
       />
     </div>
@@ -91,8 +95,8 @@ async function changeStatus(a: Appointment, status: string) {
       :columns="columns"
       :rows="items"
       :loading="loading"
-      empty-title="No appointments"
-      :empty-description="error?.message ?? 'Create your first booking.'"
+      :empty-title="t('appointments.emptyTitle')"
+      :empty-description="error?.message ?? t('appointments.emptyBody')"
     >
       <template #cell:bookedDate="{ row }">
         <span class="font-medium text-slate-800">{{ formatDate(row.bookedDate) }}</span>
@@ -109,9 +113,9 @@ async function changeStatus(a: Appointment, status: string) {
             :value="row.status"
             @change="changeStatus(row, ($event.target as HTMLSelectElement).value)"
           >
-            <option v-for="o in STATUS_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
+            <option v-for="o in statuses" :key="o.value" :value="o.value">{{ o.label }}</option>
           </select>
-          <BaseButton size="sm" variant="ghost" @click="openEdit(row)">Edit</BaseButton>
+          <BaseButton size="sm" variant="ghost" @click="openEdit(row)">{{ t('common.edit') }}</BaseButton>
         </div>
       </template>
     </BaseTable>

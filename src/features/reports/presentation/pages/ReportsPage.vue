@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useI18n } from 'vue-i18n'
 import { Line } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -16,18 +17,20 @@ import {
 import { useReportStore } from '../../store/report.store'
 import { BaseCard, BaseSelect, BaseSkeleton } from '@/shared/ui'
 import { formatDate } from '@/shared/utils/datetime'
+import { isRtl } from '@/shared/utils/formatters'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler)
 
 const store = useReportStore()
 const { trend, loading } = storeToRefs(store)
+const { t } = useI18n()
 const rangeDays = ref<number>(30)
 
-const rangeOptions = [
-  { label: 'Last 7 days', value: 7 },
-  { label: 'Last 30 days', value: 30 },
-  { label: 'Last 90 days', value: 90 },
-]
+const rangeOptions = computed(() => [
+  { label: t('reports.last7'), value: 7 },
+  { label: t('reports.last30'), value: 30 },
+  { label: t('reports.last90'), value: 90 },
+])
 
 onMounted(() => store.fetchTrend(rangeDays.value))
 watch(rangeDays, (d) => store.fetchTrend(d))
@@ -36,7 +39,7 @@ const chartData = computed<ChartData<'line'>>(() => ({
   labels: (trend.value?.points ?? []).map((p) => formatDate(p.day)),
   datasets: [
     {
-      label: 'Appointments',
+      label: t('reports.appointments'),
       data: (trend.value?.points ?? []).map((p) => p.total),
       borderColor: '#1f796f',
       backgroundColor: 'rgba(42, 150, 136, 0.12)',
@@ -47,27 +50,33 @@ const chartData = computed<ChartData<'line'>>(() => ({
   ],
 }))
 
-const chartOptions: ChartOptions<'line'> = {
+// Reversed in Arabic so time runs the way the page is read: oldest on the
+// right, newest on the left. A left-to-right timeline inside a right-to-left
+// page reads as though the trend is going backwards.
+const chartOptions = computed<ChartOptions<'line'>>(() => ({
   responsive: true,
   maintainAspectRatio: false,
-  plugins: { legend: { display: false } },
-  scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-}
+  plugins: { legend: { display: false }, tooltip: { rtl: isRtl() } },
+  scales: {
+    x: { reverse: isRtl() },
+    y: { beginAtZero: true, ticks: { precision: 0 }, position: isRtl() ? 'right' : 'left' },
+  },
+}))
 </script>
 
 <template>
   <div class="space-y-5">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
-        <h1 class="text-xl font-semibold text-slate-900">Reports</h1>
-        <p class="text-sm text-slate-500">Appointment activity over time</p>
+        <h1 class="text-xl font-semibold text-slate-900">{{ t('reports.title') }}</h1>
+        <p class="text-sm text-slate-500">{{ t('reports.subtitle') }}</p>
       </div>
       <div class="w-44">
         <BaseSelect v-model="rangeDays" :options="rangeOptions" :placeholder="undefined" />
       </div>
     </div>
 
-    <BaseCard :title="`Appointments (${trend?.totalInPeriod ?? 0} in period)`">
+    <BaseCard :title="t('reports.chartTitle', { count: trend?.totalInPeriod ?? 0 })">
       <div class="h-80">
         <BaseSkeleton v-if="loading" :rows="6" height="h-6" />
         <Line v-else :data="chartData" :options="chartOptions" />

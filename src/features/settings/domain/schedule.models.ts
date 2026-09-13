@@ -1,3 +1,5 @@
+import { t } from '@/app/i18n'
+
 /**
  * A doctor's working week, backed by `doctor_schedule`.
  *
@@ -47,10 +49,12 @@ export type UpdateScheduleInput = Partial<CreateScheduleInput>
 /** The select value that stands for "do not cut this session up at all". */
 export const WHOLE_SESSION = 'whole'
 
-export const SESSION_OPTIONS: { label: string; value: string }[] = [
-  { label: 'Morning', value: 'morning' },
-  { label: 'Evening', value: 'evening' },
-]
+export function sessionOptions(): { label: string; value: string }[] {
+  return [
+    { label: t('session.morning'), value: 'morning' },
+    { label: t('session.evening'), value: 'evening' },
+  ]
+}
 
 /**
  * How the session is offered to patients. "Whole session" is one window from
@@ -61,13 +65,15 @@ export const SESSION_OPTIONS: { label: string; value: string }[] = [
  * The values are strings because the select element only carries strings, and
  * because null -- the value that matters most here -- cannot be one of them.
  */
-export const SLOT_OPTIONS: { label: string; value: string }[] = [
-  { label: 'Whole session', value: WHOLE_SESSION },
-  { label: '15 minutes', value: '15' },
-  { label: '20 minutes', value: '20' },
-  { label: '30 minutes', value: '30' },
-  { label: '1 hour', value: '60' },
-]
+export function slotOptions(): { label: string; value: string }[] {
+  return [
+    { label: t('settings.wholeSession'), value: WHOLE_SESSION },
+    { label: t('settings.minutes', { count: 15 }), value: '15' },
+    { label: t('settings.minutes', { count: 20 }), value: '20' },
+    { label: t('settings.minutes', { count: 30 }), value: '30' },
+    { label: t('settings.oneHour'), value: '60' },
+  ]
+}
 
 export function toSlotMinutes(value: string): number | null {
   return value === WHOLE_SESSION ? null : Number(value)
@@ -79,9 +85,11 @@ export function fromSlotMinutes(minutes: number | null): string {
 
 /** What the patient will be offered, in words. */
 export function slotLabel(entry: ScheduleEntry): string {
-  if (entry.slotMinutes === null) return 'One window'
-  const count = windowCount(entry)
-  return `${count} × ${entry.slotMinutes} min`
+  if (entry.slotMinutes === null) return t('settings.oneWindow')
+  return t('settings.slotSplit', {
+    count: windowCount(entry),
+    minutes: entry.slotMinutes,
+  })
 }
 
 /** How many appointments the session is cut into. */
@@ -94,18 +102,14 @@ export function windowCount(entry: ScheduleEntry): number {
   return Math.max(Math.ceil(minutes / entry.slotMinutes), 1)
 }
 
-export const WEEKDAY_OPTIONS: { label: string; value: number }[] = [
-  { label: 'Sunday', value: 0 },
-  { label: 'Monday', value: 1 },
-  { label: 'Tuesday', value: 2 },
-  { label: 'Wednesday', value: 3 },
-  { label: 'Thursday', value: 4 },
-  { label: 'Friday', value: 5 },
-  { label: 'Saturday', value: 6 },
-]
+export function weekdayOptions(): { label: string; value: number }[] {
+  return [0, 1, 2, 3, 4, 5, 6].map((value) => ({ label: weekdayLabel(value), value }))
+}
 
 export function weekdayLabel(weekday: number): string {
-  return WEEKDAY_OPTIONS.find((d) => d.value === weekday)?.label ?? String(weekday)
+  const key = `weekday.${weekday}`
+  const translated = t(key)
+  return translated === key ? String(weekday) : translated
 }
 
 /** Rough minutes per patient, so the doctor can sanity-check a capacity. */

@@ -1,6 +1,7 @@
 import type { PostgrestError } from '@supabase/supabase-js'
 import { AuthError } from '@supabase/supabase-js'
 import { AppError } from './app-error'
+import { t } from '@/app/i18n'
 
 function isPostgrestError(value: unknown): value is PostgrestError {
   return (
@@ -30,10 +31,10 @@ export function normalizeError(error: unknown): AppError {
         return AppError.permission(undefined, error)
       // unique_violation
       case '23505':
-        return AppError.conflict('A record with these details already exists.', error)
+        return AppError.conflict(t('errors.duplicate'), error)
       // foreign_key_violation
       case '23503':
-        return AppError.conflict('Related record is missing or in use.', error)
+        return AppError.conflict(t('errors.relatedMissing'), error)
       // no rows returned by .single()
       case 'PGRST116':
         return AppError.notFound(undefined, error)
