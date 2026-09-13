@@ -2,50 +2,76 @@ import type { AppSupabaseClient } from '@/core/http/supabase.client'
 import { type Result, ok, err } from '@/core/result'
 import { type AppError, normalizeError } from '@/core/errors'
 import type { IPaymentRepository } from '../domain/payment.repository'
-import type { Payment, PaymentListResult } from '../domain/payment.models'
+import type {
+  DateRange,
+  MethodTotals,
+  Payment,
+  PaymentsPage,
+  SettableStatus,
+} from '../domain/payment.models'
 
-interface BookingPaymentRow {
-  id: number
-  booked_date: string
-  profiles: { name: string | null } | null
-  payments: {
-    id: number
-    amount: number
-    payment_method: string | null
-    status: string | null
-    created_at: string | null
-  } | null
-}
-
+/**
+ * Payments are read through doctor_payments, not from the table.
+ *
+ * The policy on payments is "the patient who owns it, or an administrator", so
+ * a doctor selecting from it gets nothing back -- which is exactly what this
+ * page used to show. doctor_payments is a definer function scoped to the
+ * signed-in doctor, and it returns the figures and the rows together so the
+ * totals cannot disagree with the list under them.
+ */
 export class SupabasePaymentRepository implements IPaymentRepository {
   constructor(private readonly client: AppSupabaseClient) {}
 
-  async listForDoctor(doctorId: number): Promise<Result<PaymentListResult, AppError>> {
+  async listForRange(range: DateRange): Promise<Result<PaymentsPage, AppError>> {
     try {
-      const { data, error } = await this.client
-        .from('bookings')
-        .select('id, booked_date, profiles(name), payments(id, amount, payment_method, status, created_at)')
-        .eq('doctor_id', doctorId)
-        .not('payment_id', 'is', null)
-        .order('booked_date', { ascending: false })
+      const { data, error } = await this.client.rpc('doctor_payments', {
+        p_from: range.from,
+        p_to: range.to,
+      })
       if (error) return err(normalizeError(error))
 
-      const rows = (data as unknown as BookingPaymentRow[]) ?? []
-      const items: Payment[] = rows
-        .filter((r) => r.payments !== null)
-        .map((r) => ({
-          id: r.payments!.id,
-          bookingId: r.id,
-          bookedDate: r.booked_date,
-          patientName: r.profiles?.name ?? null,
-          amount: Number(r.payments!.amount),
-          method: r.payments!.payment_method,
-          status: r.payments!.status,
-          createdAt: r.payments!.created_at,
-        }))
+      const raw = (data ?? {}) as Partial<PaymentsPage>
+      const summary = raw.summary
 
-      const totalAmount = items.reduce((sum, p) => sum + p.amount, 0)
-      return ok({ items, total: items.length, totalAmount })
+      return ok({
+        range: raw.range ?? range,
+        summary: {
+          collected: Number(summary?.collected ?? 0),
+          outstanding: Number(summary?.outstanding ?? 0),
+          refunded: Number(summary?.refunded ?? 0),
+          paidCount: Number(summary?.paidCount ?? 0),
+          totalCount: Number(summary?.totalCount ?? 0),
+        },
+        byMethod: (raw.byMethod ?? []).map(
+          (m): MethodTotals => ({
+            method: m.method,
+            collected: Number(m.collected ?? 0),
+            outstanding: Number(m.outstanding ?? 0),
+            count: Number(m.count ?? 0),
+          }),
+        ),
+        // numeric comes back as a string over the wire, so every amount is
+        // converted once here rather than wherever it happens to be added up.
+        items: (raw.items ?? []).map(
+          (p): Payment => ({ ...p, amount: Number(p.amount ?? 0) }),
+        ),
+      })
+    } catch (e) {
+      return err(normalizeError(e))
+    }
+  }
+
+  async setStatus(
+    paymentId: number,
+    status: SettableStatus,
+  ): Promise<Result<void, AppError>> {
+    try {
+      const { error } = await this.client.rpc('set_payment_status', {
+        p_payment: paymentId,
+        p_status: status,
+      })
+      if (error) return err(normalizeError(error))
+      return ok(undefined)
     } catch (e) {
       return err(normalizeError(e))
     }

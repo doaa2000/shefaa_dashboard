@@ -218,6 +218,8 @@ export interface Database {
           payment_method: string | null
           status: string | null
           created_at: string | null
+          paid_at: string | null
+          marked_by: string | null
         }
         Insert: {
           id?: number
@@ -391,6 +393,8 @@ export interface Database {
         Args: { search?: string }
         Returns: Database['public']['Tables']['profiles']['Row'][]
       }
+      doctor_payments: { Args: { p_from: string; p_to: string }; Returns: Json }
+      set_payment_status: { Args: { p_payment: number; p_status: string }; Returns: Json }
     }
     Enums: Record<never, never>
   }
