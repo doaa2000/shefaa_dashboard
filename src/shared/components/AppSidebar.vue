@@ -34,7 +34,11 @@ const items: NavItem[] = [
 <template>
   <aside
     class="fixed inset-y-0 start-0 z-40 w-64 transform border-e border-surface-border bg-white transition-transform lg:translate-x-0"
-    :class="open ? 'translate-x-0' : 'ltr:-translate-x-full rtl:translate-x-full'"
+    :class="
+      open
+        ? 'translate-x-0'
+        : 'max-lg:ltr:-translate-x-full max-lg:rtl:translate-x-full'
+    "
   >
     <div class="flex h-16 items-center gap-2 border-b border-surface-border px-6">
       <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-primary-600 text-white font-bold">S</span>
