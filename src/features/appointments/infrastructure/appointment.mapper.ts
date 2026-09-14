@@ -1,9 +1,5 @@
-import type { Tables, TablesInsert, TablesUpdate } from '@/core/types/database.types'
-import type {
-  Appointment,
-  CreateAppointmentInput,
-  UpdateAppointmentInput,
-} from '../domain/appointment.models'
+import type { Tables, TablesUpdate } from '@/core/types/database.types'
+import type { Appointment, UpdateAppointmentInput } from '../domain/appointment.models'
 
 type BookingRow = Tables<'bookings'> & { profiles?: { name: string | null } | null }
 
@@ -22,18 +18,6 @@ export function toAppointment(row: BookingRow): Appointment {
     endTime: row.end_time,
     status: row.status ?? 'pending',
     createdAt: row.created_at,
-  }
-}
-
-export function toInsert(doctorId: number, input: CreateAppointmentInput): TablesInsert<'bookings'> {
-  return {
-    doctor_id: doctorId,
-    patient_id: input.patientId,
-    booked_date: input.bookedDate,
-    session: input.session,
-    start_time: input.startTime,
-    end_time: input.endTime,
-    status: input.status,
   }
 }
 

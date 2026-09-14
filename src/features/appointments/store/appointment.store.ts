@@ -49,7 +49,7 @@ export const useAppointmentStore = defineStore('appointments', () => {
     if (!auth.doctorId) return null
     saving.value = true
     error.value = null
-    const result = await service.create(auth.doctorId, input)
+    const result = await service.create(input)
     saving.value = false
     if (isOk(result)) return result.value
     error.value = result.error
