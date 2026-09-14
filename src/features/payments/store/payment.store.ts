@@ -39,6 +39,9 @@ const emptySummary: PaymentSummary = {
   refunded: 0,
   paidCount: 0,
   totalCount: 0,
+  commission: 0,
+  net: 0,
+  unrated: 0,
 }
 
 export const usePaymentStore = defineStore('payments', () => {

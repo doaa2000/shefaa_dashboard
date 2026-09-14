@@ -41,6 +41,9 @@ export class SupabasePaymentRepository implements IPaymentRepository {
           refunded: Number(summary?.refunded ?? 0),
           paidCount: Number(summary?.paidCount ?? 0),
           totalCount: Number(summary?.totalCount ?? 0),
+          commission: Number(summary?.commission ?? 0),
+          net: Number(summary?.net ?? 0),
+          unrated: Number(summary?.unrated ?? 0),
         },
         byMethod: (raw.byMethod ?? []).map(
           (m): MethodTotals => ({
@@ -53,7 +56,13 @@ export class SupabasePaymentRepository implements IPaymentRepository {
         // numeric comes back as a string over the wire, so every amount is
         // converted once here rather than wherever it happens to be added up.
         items: (raw.items ?? []).map(
-          (p): Payment => ({ ...p, amount: Number(p.amount ?? 0) }),
+          (p): Payment => ({
+            ...p,
+            amount: Number(p.amount ?? 0),
+            commissionRate: p.commissionRate == null ? null : Number(p.commissionRate),
+            commissionAmount:
+              p.commissionAmount == null ? null : Number(p.commissionAmount),
+          }),
         ),
       })
     } catch (e) {
