@@ -7,7 +7,6 @@ import { useAuthStore } from '@/features/auth/store/auth.store'
 import type {
   Appointment,
   AppointmentListQuery,
-  CreateAppointmentInput,
   UpdateAppointmentInput,
 } from '../domain/appointment.models'
 
@@ -43,17 +42,6 @@ export const useAppointmentStore = defineStore('appointments', () => {
     } else {
       error.value = result.error
     }
-  }
-
-  async function create(input: CreateAppointmentInput): Promise<Appointment | null> {
-    if (!auth.doctorId) return null
-    saving.value = true
-    error.value = null
-    const result = await service.create(input)
-    saving.value = false
-    if (isOk(result)) return result.value
-    error.value = result.error
-    return null
   }
 
   async function update(id: number, input: UpdateAppointmentInput): Promise<Appointment | null> {
@@ -94,5 +82,5 @@ export const useAppointmentStore = defineStore('appointments', () => {
     if (idx !== -1) items.value[idx] = updated
   }
 
-  return { items, total, loading, saving, error, fetchList, create, update, setStatus, remove }
+  return { items, total, loading, saving, error, fetchList, update, setStatus, remove }
 })
