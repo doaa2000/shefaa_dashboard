@@ -44,28 +44,19 @@ async function load() {
 onMounted(load)
 watch([() => pagination.page.value, statusFilter], load)
 
-function openCreate() {
-  editing.value = null
-  modalOpen.value = true
-}
+// Bookings are made in the patients' app, and only there. The dashboard shows
+// them and manages them -- it does not write new ones, so there is no create
+// path here and none behind it either.
 function openEdit(a: Appointment) {
   editing.value = a
   modalOpen.value = true
 }
 
 async function onSubmit(values: AppointmentFormValues) {
-  const saved = editing.value
-    ? await store.update(editing.value.id, values)
-    : await store.create({
-        ...values,
-        // '' means "use the doctor's standing fee", and the database reads
-        // that as the argument being absent.
-        amount: values.amount === '' || values.amount === undefined ? null : values.amount,
-        paymentMethod: values.paymentMethod,
-        paid: values.paid,
-      })
+  if (!editing.value) return
+  const saved = await store.update(editing.value.id, values)
   if (saved) {
-    toast.success(t(editing.value ? 'appointments.updated' : 'appointments.created'))
+    toast.success(t('appointments.updated'))
     modalOpen.value = false
     await load()
   } else if (store.error) {
@@ -85,7 +76,6 @@ async function changeStatus(a: Appointment, status: string) {
         <h1 class="text-xl font-semibold text-slate-900">{{ t('appointments.title') }}</h1>
         <p class="text-sm text-slate-500">{{ t('appointments.subtitle') }}</p>
       </div>
-      <BaseButton @click="openCreate">{{ t('appointments.newAppointment') }}</BaseButton>
     </div>
 
     <div class="max-w-xs">

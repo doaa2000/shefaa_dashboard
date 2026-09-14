@@ -5,7 +5,6 @@ import type {
   Appointment,
   AppointmentListQuery,
   AppointmentListResult,
-  CreateAppointmentInput,
   UpdateAppointmentInput,
 } from '../domain/appointment.models'
 
@@ -25,10 +24,6 @@ export class AppointmentService {
 
   getById(id: number): Promise<Result<Appointment, AppError>> {
     return this.repo.getById(id)
-  }
-
-  create(input: CreateAppointmentInput): Promise<Result<Appointment, AppError>> {
-    return this.repo.create(input)
   }
 
   update(id: number, input: UpdateAppointmentInput): Promise<Result<Appointment, AppError>> {
