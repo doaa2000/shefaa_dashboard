@@ -9,7 +9,7 @@ import type {
   CreateAppointmentInput,
   UpdateAppointmentInput,
 } from '../domain/appointment.models'
-import { toAppointment, toInsert, toUpdate } from './appointment.mapper'
+import { toAppointment, toUpdate } from './appointment.mapper'
 
 const SELECT = '*, profiles(name)'
 
@@ -75,18 +75,38 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     }
   }
 
-  async create(
-    doctorId: number,
-    input: CreateAppointmentInput,
-  ): Promise<Result<Appointment, AppError>> {
+  async create(input: CreateAppointmentInput): Promise<Result<Appointment, AppError>> {
     try {
-      const { data, error } = await this.client
-        .from('bookings')
-        .insert(toInsert(doctorId, input))
-        .select(SELECT)
-        .single()
+      // Through the function, not a plain insert: a booking written straight
+      // into the table carries no payment, so the visit happened and the fee
+      // existed nowhere -- not on the payments page, not in the day's takings.
+      // doctor_create_booking writes both in one transaction.
+      const { data, error } = await this.client.rpc('doctor_create_booking', {
+        p_patient: input.patientId,
+        p_date: input.bookedDate,
+        p_session: input.session,
+        p_start: input.startTime,
+        p_end: input.endTime,
+        p_method: input.paymentMethod,
+        p_amount: input.amount ?? undefined,
+        p_paid: input.paid,
+        p_status: input.status,
+      })
       if (error) return err(normalizeError(error))
-      return ok(toAppointment(data))
+
+      const created = data as { bookingId: number } | null
+      if (!created) return err(normalizeError(new Error('No booking returned')))
+
+      // Read it back rather than assemble it here: the row now carries a
+      // payment id and whatever the database settled on, and the list should
+      // show that, not this function's idea of it.
+      const { data: row, error: readError } = await this.client
+        .from('bookings')
+        .select(SELECT)
+        .eq('id', created.bookingId)
+        .single()
+      if (readError) return err(normalizeError(readError))
+      return ok(toAppointment(row))
     } catch (e) {
       return err(normalizeError(e))
     }

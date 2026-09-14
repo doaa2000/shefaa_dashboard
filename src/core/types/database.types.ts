@@ -394,6 +394,20 @@ export interface Database {
         Returns: Database['public']['Tables']['profiles']['Row'][]
       }
       doctor_payments: { Args: { p_from: string; p_to: string }; Returns: Json }
+      doctor_create_booking: {
+        Args: {
+          p_patient: string
+          p_date: string
+          p_session: string
+          p_start: string
+          p_end: string
+          p_method?: string
+          p_amount?: number
+          p_paid?: boolean
+          p_status?: string
+        }
+        Returns: Json
+      }
       set_payment_status: { Args: { p_payment: number; p_status: string }; Returns: Json }
     }
     Enums: Record<never, never>
