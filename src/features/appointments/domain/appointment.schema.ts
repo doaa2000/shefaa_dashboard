@@ -13,6 +13,14 @@ export const appointmentSchema = () =>
       startTime: z.string().min(1, t('validation.startRequired')),
       endTime: z.string().min(1, t('validation.endRequired')),
       status: z.string().min(1),
+      // Blank means "the doctor's standing fee", which the database fills in.
+      // An empty string has to survive the coercion, or clearing the box reads
+      // as zero -- a free visit nobody asked for.
+      amount: z
+        .union([z.literal(''), z.coerce.number().min(0, t('validation.feeNegative'))])
+        .optional(),
+      paymentMethod: z.string().min(1),
+      paid: z.boolean().default(false),
     })
     .refine((d) => d.endTime > d.startTime, {
       message: t('validation.endAfterStart'),

@@ -6,6 +6,7 @@ import { toTypedSchema } from '@vee-validate/zod'
 import { appointmentSchema, type AppointmentFormValues } from '../../domain/appointment.schema'
 import { statusOptions } from '../../domain/appointment.labels'
 import { sessionOptions } from '@/features/settings/domain/schedule.models'
+import { useAuthStore } from '@/features/auth/store/auth.store'
 import type { Appointment } from '../../domain/appointment.models'
 import { usePatientOptions } from '@/features/patients/application/usePatientOptions'
 import { BaseButton, BaseInput, BaseModal, BaseSelect, FormField } from '@/shared/ui'
@@ -18,15 +19,28 @@ const emit = defineEmits<{
 
 const { options: patientOptions } = usePatientOptions()
 const { t } = useI18n()
+const auth = useAuthStore()
 
 const statuses = computed(() => statusOptions())
 const sessions = computed(() => sessionOptions())
+const methods = computed(() => [
+  { label: t('method.cash'), value: 'cash' },
+  { label: t('method.instapay'), value: 'instapay' },
+  { label: t('method.card'), value: 'card' },
+])
+
+// Shown as the placeholder rather than filled in: a number already in the box
+// is a number the doctor has to think about, and nine times in ten the answer
+// is "whatever I normally charge".
+const feePlaceholder = computed(() =>
+  auth.profile?.consultationFee != null ? String(auth.profile.consultationFee) : '',
+)
 
 const { defineField, handleSubmit, errors, resetForm } = useForm<AppointmentFormValues>({
   // A computed schema, so the messages follow a language change instead of
   // staying in whichever one the form was opened in.
   validationSchema: computed(() => toTypedSchema(appointmentSchema())),
-  initialValues: { status: 'pending' },
+  initialValues: { status: 'pending', paymentMethod: 'cash', paid: false },
 })
 
 const [patientId] = defineField('patientId')
@@ -35,6 +49,9 @@ const [session] = defineField('session')
 const [startTime, startAttrs] = defineField('startTime')
 const [endTime, endAttrs] = defineField('endTime')
 const [status] = defineField('status')
+const [amount, amountAttrs] = defineField('amount')
+const [paymentMethod] = defineField('paymentMethod')
+const [paid, paidAttrs] = defineField('paid')
 
 watch(
   () => props.modelValue,
@@ -50,14 +67,18 @@ watch(
           startTime: a.startTime?.slice(0, 5),
           endTime: a.endTime?.slice(0, 5),
           status: a.status,
+          paymentMethod: 'cash',
+          paid: false,
         },
       })
     } else {
       resetForm({
         values: {
-          status: 'pending',
+          status: 'confirmed',
           session: 'morning',
           bookedDate: new Date().toISOString().slice(0, 10),
+          paymentMethod: 'cash',
+          paid: false,
         },
       })
     }
@@ -93,6 +114,41 @@ const onSubmit = handleSubmit((values) => emit('submit', values))
       <FormField :label="t('appointments.modal.endTime')" :error="errors.endTime" required>
         <BaseInput v-model="endTime" v-bind="endAttrs" type="time" :invalid="!!errors.endTime" />
       </FormField>
+
+      <!-- Only when creating. Editing an appointment must not quietly rewrite
+           what it cost; that belongs on the payments page, where the change is
+           recorded against whoever made it. -->
+      <template v-if="!appointment">
+        <FormField
+          :label="t('appointments.modal.fee')"
+          :error="errors.amount"
+          :hint="t('appointments.modal.feeHint')"
+        >
+          <BaseInput
+            v-model="amount"
+            v-bind="amountAttrs"
+            type="number"
+            min="0"
+            :placeholder="feePlaceholder"
+            :invalid="!!errors.amount"
+          />
+        </FormField>
+        <FormField :label="t('appointments.modal.method')">
+          <BaseSelect v-model="paymentMethod" :options="methods" :placeholder="undefined" />
+        </FormField>
+        <label class="flex items-center gap-2 text-sm text-slate-700 sm:col-span-2">
+          <input
+            v-model="paid"
+            v-bind="paidAttrs"
+            type="checkbox"
+            class="h-4 w-4 rounded border-surface-border text-primary-600"
+          />
+          {{ t('appointments.modal.paidNow') }}
+        </label>
+        <p class="text-xs text-slate-500 sm:col-span-2">
+          {{ t('appointments.modal.feeNote') }}
+        </p>
+      </template>
     </form>
     <template #footer>
       <div class="flex justify-end gap-3">

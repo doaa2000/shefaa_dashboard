@@ -27,8 +27,8 @@ export class AppointmentService {
     return this.repo.getById(id)
   }
 
-  create(doctorId: number, input: CreateAppointmentInput): Promise<Result<Appointment, AppError>> {
-    return this.repo.create(doctorId, input)
+  create(input: CreateAppointmentInput): Promise<Result<Appointment, AppError>> {
+    return this.repo.create(input)
   }
 
   update(id: number, input: UpdateAppointmentInput): Promise<Result<Appointment, AppError>> {

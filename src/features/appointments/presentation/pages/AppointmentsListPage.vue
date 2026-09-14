@@ -56,7 +56,14 @@ function openEdit(a: Appointment) {
 async function onSubmit(values: AppointmentFormValues) {
   const saved = editing.value
     ? await store.update(editing.value.id, values)
-    : await store.create(values)
+    : await store.create({
+        ...values,
+        // '' means "use the doctor's standing fee", and the database reads
+        // that as the argument being absent.
+        amount: values.amount === '' || values.amount === undefined ? null : values.amount,
+        paymentMethod: values.paymentMethod,
+        paid: values.paid,
+      })
   if (saved) {
     toast.success(t(editing.value ? 'appointments.updated' : 'appointments.created'))
     modalOpen.value = false
