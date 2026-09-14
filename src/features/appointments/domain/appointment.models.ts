@@ -57,24 +57,16 @@ export interface AppointmentListResult {
   total: number
 }
 
-export interface CreateAppointmentInput {
-  patientId: string
-  bookedDate: string
-  session: string
-  startTime: string
-  endTime: string
-  status: string
-  /** The fee for this visit. Left out, the doctor's standing consultation fee
-   *  is used -- which is what a first visit almost always costs. */
-  amount?: number | null
-  paymentMethod: string
-  /** Collected at the desk there and then, which is the usual case for
-   *  somebody the doctor is booking in while they stand in front of them. */
-  paid: boolean
+/** What an appointment can be changed to. There is no create shape: bookings
+ *  are made in the patients' app, and the dashboard only manages what is
+ *  already there. The fee is not here either -- it lives on the payment row,
+ *  and changing money belongs on the payments page, where the change is
+ *  recorded against whoever made it. */
+export interface UpdateAppointmentInput {
+  patientId?: string
+  bookedDate?: string
+  session?: string
+  startTime?: string
+  endTime?: string
+  status?: string
 }
-
-/** The fee belongs to the payment row, not the booking, so changing an
- *  appointment cannot change what it cost. That is the payments page's job. */
-export type UpdateAppointmentInput = Partial<
-  Omit<CreateAppointmentInput, 'amount' | 'paymentMethod' | 'paid'>
->
