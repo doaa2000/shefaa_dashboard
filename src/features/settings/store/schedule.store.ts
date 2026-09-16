@@ -10,6 +10,7 @@ import type {
   UpdateScheduleInput,
 } from '../domain/schedule.models'
 import { weekdayOptions } from '../domain/schedule.models'
+import type { ScheduleClosure, CreateClosureInput } from '../domain/schedule.models'
 
 export const useScheduleStore = defineStore('schedules', () => {
   const service = container.scheduleService
@@ -76,6 +77,50 @@ export const useScheduleStore = defineStore('schedules', () => {
     return update(entry.id, { isActive: !entry.isActive })
   }
 
+  /** Days off, kept beside the weekly pattern they interrupt. */
+  const closures = ref<ScheduleClosure[]>([])
+
+  async function fetchClosures(): Promise<void> {
+    if (!auth.doctorId) return
+    const result = await service.listClosures(auth.doctorId)
+    if (isOk(result)) closures.value = result.value
+    else error.value = result.error
+  }
+
+  /** How many people are booked into that date already. Asked before closing,
+   *  because closing tells nobody: the doctor has to. */
+  async function bookingsOn(date: string, session: string | null): Promise<number> {
+    if (!auth.doctorId) return 0
+    const result = await service.countBookingsOn(auth.doctorId, date, session)
+    return isOk(result) ? result.value : 0
+  }
+
+  async function addClosure(input: CreateClosureInput): Promise<boolean> {
+    if (!auth.doctorId) return false
+    saving.value = true
+    error.value = null
+    const result = await service.addClosure(auth.doctorId, input)
+    saving.value = false
+    if (isOk(result)) {
+      closures.value = [...closures.value, result.value].sort((a, b) =>
+        a.date.localeCompare(b.date),
+      )
+      return true
+    }
+    error.value = result.error
+    return false
+  }
+
+  async function removeClosure(id: number): Promise<boolean> {
+    const result = await service.removeClosure(id)
+    if (isOk(result)) {
+      closures.value = closures.value.filter((c) => c.id !== id)
+      return true
+    }
+    error.value = result.error
+    return false
+  }
+
   async function remove(id: number): Promise<boolean> {
     const result = await service.remove(id)
     if (isOk(result)) {
@@ -87,6 +132,11 @@ export const useScheduleStore = defineStore('schedules', () => {
   }
 
   return {
+    closures,
+    fetchClosures,
+    addClosure,
+    removeClosure,
+    bookingsOn,
     items,
     byWeekday,
     totalWeeklyCapacity,
