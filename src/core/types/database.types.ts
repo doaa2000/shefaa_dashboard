@@ -394,6 +394,7 @@ export interface Database {
         Returns: Database['public']['Tables']['profiles']['Row'][]
       }
       doctor_payments: { Args: { p_from: string; p_to: string }; Returns: Json }
+      doctor_patient_visits: { Args: { p_patient: string }; Returns: Json }
       set_payment_status: { Args: { p_payment: number; p_status: string }; Returns: Json }
     }
     Enums: Record<never, never>

@@ -1,7 +1,7 @@
 import type { Result } from '@/core/result'
 import type { AppError } from '@/core/errors'
 import type { IPatientRepository } from '../domain/patient.repository'
-import type { Patient } from '../domain/patient.models'
+import type { Patient, PatientHistory } from '../domain/patient.models'
 
 export class PatientService {
   constructor(private readonly repo: IPatientRepository) {}
@@ -12,5 +12,9 @@ export class PatientService {
 
   getById(id: string): Promise<Result<Patient, AppError>> {
     return this.repo.getById(id)
+  }
+
+  getHistory(id: string): Promise<Result<PatientHistory, AppError>> {
+    return this.repo.getHistory(id)
   }
 }
