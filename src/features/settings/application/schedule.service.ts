@@ -5,6 +5,8 @@ import type {
   ScheduleEntry,
   CreateScheduleInput,
   UpdateScheduleInput,
+  ScheduleClosure,
+  CreateClosureInput,
 } from '../domain/schedule.models'
 
 export class ScheduleService {
@@ -24,5 +26,28 @@ export class ScheduleService {
 
   remove(id: number): Promise<Result<void, AppError>> {
     return this.repo.remove(id)
+  }
+
+  listClosures(doctorId: number): Promise<Result<ScheduleClosure[], AppError>> {
+    return this.repo.listClosures(doctorId)
+  }
+
+  addClosure(
+    doctorId: number,
+    input: CreateClosureInput,
+  ): Promise<Result<ScheduleClosure, AppError>> {
+    return this.repo.addClosure(doctorId, input)
+  }
+
+  removeClosure(id: number): Promise<Result<void, AppError>> {
+    return this.repo.removeClosure(id)
+  }
+
+  countBookingsOn(
+    doctorId: number,
+    date: string,
+    session: string | null,
+  ): Promise<Result<number, AppError>> {
+    return this.repo.countBookingsOn(doctorId, date, session)
   }
 }

@@ -7,6 +7,8 @@ import type {
   ScheduleEntry,
   CreateScheduleInput,
   UpdateScheduleInput,
+  ScheduleClosure,
+  CreateClosureInput,
 } from '../domain/schedule.models'
 
 function toEntry(row: Tables<'doctor_schedule'>): ScheduleEntry {
@@ -106,6 +108,98 @@ export class SupabaseScheduleRepository implements IScheduleRepository {
       const { error } = await this.client.from('doctor_schedule').delete().eq('id', id)
       if (error) return err(normalizeError(error))
       return ok(undefined)
+    } catch (e) {
+      return err(normalizeError(e))
+    }
+  }
+
+  async listClosures(doctorId: number): Promise<Result<ScheduleClosure[], AppError>> {
+    try {
+      const { data, error } = await this.client
+        .from('doctor_schedule_exceptions')
+        .select('id, doctor_id, date, session, reason')
+        // Today included: a day being closed while it runs is the most likely
+        // reason anybody opens this list.
+        .gte('date', new Date().toISOString().slice(0, 10))
+        .eq('doctor_id', doctorId)
+        .order('date', { ascending: true })
+      if (error) return err(normalizeError(error))
+
+      return ok(
+        (data ?? []).map((row) => ({
+          id: row.id,
+          doctorId: row.doctor_id,
+          date: row.date,
+          session: row.session,
+          reason: row.reason,
+        })),
+      )
+    } catch (e) {
+      return err(normalizeError(e))
+    }
+  }
+
+  async addClosure(
+    doctorId: number,
+    input: CreateClosureInput,
+  ): Promise<Result<ScheduleClosure, AppError>> {
+    try {
+      const { data, error } = await this.client
+        .from('doctor_schedule_exceptions')
+        .insert({
+          doctor_id: doctorId,
+          date: input.date,
+          session: input.session,
+          is_closed: true,
+          reason: input.reason,
+        })
+        .select('id, doctor_id, date, session, reason')
+        .single()
+      if (error) return err(normalizeError(error))
+
+      return ok({
+        id: data.id,
+        doctorId: data.doctor_id,
+        date: data.date,
+        session: data.session,
+        reason: data.reason,
+      })
+    } catch (e) {
+      return err(normalizeError(e))
+    }
+  }
+
+  async removeClosure(id: number): Promise<Result<void, AppError>> {
+    try {
+      const { error } = await this.client
+        .from('doctor_schedule_exceptions')
+        .delete()
+        .eq('id', id)
+      if (error) return err(normalizeError(error))
+      return ok(undefined)
+    } catch (e) {
+      return err(normalizeError(e))
+    }
+  }
+
+  async countBookingsOn(
+    doctorId: number,
+    date: string,
+    session: string | null,
+  ): Promise<Result<number, AppError>> {
+    try {
+      let q = this.client
+        .from('bookings')
+        .select('id', { count: 'exact', head: true })
+        .eq('doctor_id', doctorId)
+        .eq('booked_date', date)
+        // A cancelled booking is nobody waiting at the door.
+        .neq('status', 'cancelled')
+      if (session) q = q.eq('session', session)
+
+      const { count, error } = await q
+      if (error) return err(normalizeError(error))
+      return ok(count ?? 0)
     } catch (e) {
       return err(normalizeError(e))
     }

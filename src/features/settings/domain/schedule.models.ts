@@ -121,3 +121,42 @@ export function minutesPerPatient(entry: ScheduleEntry): number | null {
   if (minutes <= 0) return null
   return Math.round(minutes / entry.capacity)
 }
+
+/**
+ * A day, or one session of it, that the doctor is not working.
+ *
+ * Availability for every date is computed from the weekly pattern; this is how
+ * a single date departs from it. A null session closes the whole day and wins
+ * over a per-session row, which is what doctor_sessions_on already does with
+ * it -- nothing here decides that, it only records it.
+ */
+export interface ScheduleClosure {
+  id: number
+  doctorId: number
+  /** YYYY-MM-DD. */
+  date: string
+  /** 'morning', 'evening', or null for the whole day. */
+  session: string | null
+  reason: string | null
+}
+
+export interface CreateClosureInput {
+  date: string
+  session: string | null
+  reason: string | null
+}
+
+/** The whole day, or one of the two sessions. */
+export const WHOLE_DAY = 'day'
+
+export function closureScopeOptions(): { label: string; value: string }[] {
+  return [
+    { label: t('settings.wholeDay'), value: WHOLE_DAY },
+    { label: t('session.morning'), value: 'morning' },
+    { label: t('session.evening'), value: 'evening' },
+  ]
+}
+
+export function toClosureSession(value: string): string | null {
+  return value === WHOLE_DAY ? null : value
+}
