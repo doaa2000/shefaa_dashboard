@@ -23,6 +23,7 @@ const columns = computed<Column[]>(() => [
   { key: 'method', label: t('payments.columns.method') },
   { key: 'status', label: t('payments.columns.status'), align: 'center' },
   { key: 'amount', label: t('payments.columns.amount'), align: 'right' },
+  { key: 'commissionAmount', label: t('payments.commissionColumn'), align: 'right' },
   { key: 'actions', label: '', align: 'right' },
 ])
 
@@ -98,6 +99,7 @@ function exportCsv() {
       t('payments.csv.status'),
       t('payments.csv.amount'),
       t('payments.csv.collectedAt'),
+      t('payments.commissionColumn'),
     ],
     visibleItems.value.map((p) => [
       p.bookedDate,
@@ -107,6 +109,7 @@ function exportCsv() {
       statusLabel(p.status),
       p.amount,
       p.paidAt ?? '',
+      p.commissionAmount ?? '',
     ]),
   )
   downloadCsv(`payments-${range.value.from}-to-${range.value.to}.csv`, csv)
@@ -172,6 +175,23 @@ function exportCsv() {
       </div>
     </div>
 
+    <!-- The platform's share, shown rather than deducted quietly. A doctor who
+         cannot see what was taken is a doctor who will ask, and be right to. -->
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div class="rounded-2xl border border-surface-border bg-white p-5 shadow-card">
+        <p class="text-sm font-medium text-slate-500">{{ t('payments.commission') }}</p>
+        <p class="mt-2 text-2xl font-semibold text-slate-900">{{ money(summary.commission) }}</p>
+        <p class="mt-1 text-xs text-slate-400">{{ t('payments.commissionNote') }}</p>
+        <p v-if="summary.unrated > 0" class="mt-1 text-xs text-slate-400">
+          {{ t('payments.unratedNote', { count: summary.unrated }) }}
+        </p>
+      </div>
+      <div class="rounded-2xl border border-surface-border bg-white p-5 shadow-card">
+        <p class="text-sm font-medium text-slate-500">{{ t('payments.net') }}</p>
+        <p class="mt-2 text-2xl font-semibold text-primary-700">{{ money(summary.net) }}</p>
+      </div>
+    </div>
+
     <MethodBreakdown :rows="byMethod" />
 
     <div class="flex flex-wrap items-center gap-2">
@@ -216,6 +236,12 @@ function exportCsv() {
       </template>
       <template #cell:amount="{ row }">
         <span class="font-medium text-slate-800">{{ money(row.amount) }}</span>
+      </template>
+      <template #cell:commissionAmount="{ row }">
+        <span v-if="row.commissionAmount != null" class="text-slate-500">
+          {{ money(row.commissionAmount) }}
+        </span>
+        <span v-else class="text-slate-300">—</span>
       </template>
       <template #cell:actions="{ row }">
         <div class="flex justify-end gap-2">
