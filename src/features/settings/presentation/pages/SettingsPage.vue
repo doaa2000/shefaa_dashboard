@@ -2,6 +2,7 @@
 import { useI18n } from 'vue-i18n'
 import ProfileForm from '../components/ProfileForm.vue'
 import ScheduleManager from '../components/ScheduleManager.vue'
+import ClosureManager from '../components/ClosureManager.vue'
 
 const { t } = useI18n()
 </script>
@@ -14,5 +15,6 @@ const { t } = useI18n()
     </div>
     <ProfileForm />
     <ScheduleManager />
+    <ClosureManager />
   </div>
 </template>
