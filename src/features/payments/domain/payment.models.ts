@@ -25,6 +25,11 @@ export interface Payment {
   /** When the money was taken. Null while it is outstanding. */
   paidAt: string | null
   createdAt: string | null
+  /** The platform's share of this fee, as agreed when the booking was made.
+   *  Null on a cancelled booking, which owes nothing, and on one taken before
+   *  there was a share at all. */
+  commissionRate: number | null
+  commissionAmount: number | null
 }
 
 export interface PaymentSummary {
@@ -33,6 +38,14 @@ export interface PaymentSummary {
   refunded: number
   paidCount: number
   totalCount: number
+  /** Charged on every booking that was not cancelled, collected or not: the
+   *  share is earned by the booking, and collecting the fee is between the
+   *  doctor and the patient. */
+  commission: number
+  net: number
+  /** Bookings from before the platform had a share. Reported so the doctor can
+   *  see the figures above do not silently include them. */
+  unrated: number
 }
 
 /** Cash is in the drawer and instapay is in the bank; they are counted apart
