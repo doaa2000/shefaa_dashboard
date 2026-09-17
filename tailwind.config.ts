@@ -36,9 +36,9 @@ export default {
         },
       },
       fontFamily: {
-        // Cairo after Inter: the Latin glyphs still come from Inter, and the
+        // Tajawal after Inter: the Latin glyphs still come from Inter, and the
         // Arabic ones from a font that has them.
-        sans: ['Inter', 'Cairo', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'Tajawal', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         xl: '0.875rem',
