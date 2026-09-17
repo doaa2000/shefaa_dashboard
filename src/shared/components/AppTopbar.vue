@@ -3,6 +3,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/features/auth/store/auth.store'
 import LanguageToggle from '@/shared/components/LanguageToggle.vue'
+import NotificationBell from '@/shared/components/NotificationBell.vue'
 import { BaseAvatar } from '@/shared/ui'
 
 defineProps<{ title: string }>()
@@ -32,12 +33,8 @@ async function signOut() {
     <div class="flex items-center gap-2">
       <LanguageToggle />
 
-      <!--
-        The bell is out until notifications are built. It fetched from a
-        table that does not exist and opened a realtime subscription to it,
-        on every page, so every screen in the dashboard carried a failing
-        request it never showed anyone.
-      -->
+      <NotificationBell />
+
       <div class="group relative">
         <button class="flex items-center gap-2 rounded-xl py-1 ps-1 pe-2 hover:bg-surface-muted">
           <BaseAvatar :name="auth.profile?.name" :src="auth.profile?.image" size="sm" />

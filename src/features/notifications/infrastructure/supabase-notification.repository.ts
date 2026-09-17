@@ -3,38 +3,44 @@ import { type Result, ok, err } from '@/core/result'
 import { type AppError, normalizeError } from '@/core/errors'
 import type { Tables } from '@/core/types/database.types'
 import type { INotificationRepository } from '../domain/notification.repository'
-import type {
-  AppNotification,
-  NotificationListResult,
-  NotificationType,
-} from '../domain/notification.models'
+import type { AppNotification, NotificationListResult } from '../domain/notification.models'
 
 function toNotification(row: Tables<'notifications'>): AppNotification {
+  const data = (row.data ?? {}) as Record<string, unknown>
+  const bookingId = Number(data.booking_id)
+
   return {
     id: row.id,
-    doctorId: row.doctor_id,
-    type: row.type as NotificationType,
+    kind: row.kind,
     title: row.title,
     body: row.body,
-    isRead: row.is_read,
-    entityType: row.entity_type,
-    entityId: row.entity_id,
-    createdAt: row.created_at,
+    bookingId: Number.isFinite(bookingId) ? bookingId : null,
+    sentAt: row.sent_at as string,
+    readAt: row.read_at,
+    isRead: row.read_at !== null,
   }
 }
 
 export class SupabaseNotificationRepository implements INotificationRepository {
   constructor(private readonly client: AppSupabaseClient) {}
 
-  async list(doctorId: number, limit = 30): Promise<Result<NotificationListResult, AppError>> {
+  /**
+   * No filter by doctor: the table's policy already answers with this
+   * account's rows and nothing else, and a filter written here as well would
+   * be a second copy of that rule, free to drift from it.
+   */
+  async list(limit = 50): Promise<Result<NotificationListResult, AppError>> {
     try {
       const { data, error } = await this.client
         .from('notifications')
         .select('*')
-        .eq('doctor_id', doctorId)
-        .order('created_at', { ascending: false })
+        // Undelivered rows are the queue's business, not the reader's. A
+        // reminder scheduled for tomorrow is not news today.
+        .not('sent_at', 'is', null)
+        .order('sent_at', { ascending: false })
         .limit(limit)
       if (error) return err(normalizeError(error))
+
       const items = data.map(toNotification)
       return ok({ items, unreadCount: items.filter((n) => !n.isRead).length })
     } catch (e) {
@@ -42,28 +48,9 @@ export class SupabaseNotificationRepository implements INotificationRepository {
     }
   }
 
-  async markAsRead(id: string): Promise<Result<AppNotification, AppError>> {
+  async markAsRead(id: number): Promise<Result<void, AppError>> {
     try {
-      const { data, error } = await this.client
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', id)
-        .select('*')
-        .single()
-      if (error) return err(normalizeError(error))
-      return ok(toNotification(data))
-    } catch (e) {
-      return err(normalizeError(e))
-    }
-  }
-
-  async markAllAsRead(doctorId: number): Promise<Result<void, AppError>> {
-    try {
-      const { error } = await this.client
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('doctor_id', doctorId)
-        .eq('is_read', false)
+      const { error } = await this.client.rpc('mark_notification_read', { p_id: id })
       if (error) return err(normalizeError(error))
       return ok(undefined)
     } catch (e) {
@@ -71,27 +58,13 @@ export class SupabaseNotificationRepository implements INotificationRepository {
     }
   }
 
-  async remove(id: string): Promise<Result<void, AppError>> {
+  async markAllAsRead(): Promise<Result<void, AppError>> {
     try {
-      const { error } = await this.client.from('notifications').delete().eq('id', id)
+      const { error } = await this.client.rpc('mark_all_notifications_read')
       if (error) return err(normalizeError(error))
       return ok(undefined)
     } catch (e) {
       return err(normalizeError(e))
-    }
-  }
-
-  subscribe(doctorId: number, onInsert: (n: AppNotification) => void): () => void {
-    const channel = this.client
-      .channel(`notifications:${doctorId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `doctor_id=eq.${doctorId}` },
-        (payload) => onInsert(toNotification(payload.new as Tables<'notifications'>)),
-      )
-      .subscribe()
-    return () => {
-      void this.client.removeChannel(channel)
     }
   }
 }

@@ -233,6 +233,14 @@ export const ar: Messages = {
     last30: 'آخر ٣٠ يومًا',
     last90: 'آخر ٩٠ يومًا',
   },
+  notifications: {
+    title: 'الإشعارات',
+    unread: 'غير المقروء: {count}',
+    markAllRead: 'تعليم الكل كمقروء',
+    viewAll: 'عرض الكل',
+    emptyTitle: 'لا توجد إشعارات',
+    emptyBody: 'سيظهر هنا كل حجز جديد وكل إلغاء.',
+  },
   settings: {
     notifications: 'إشعارات المتصفح',
     notificationsSubtitle:

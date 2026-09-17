@@ -1,28 +1,20 @@
 import type { Result } from '@/core/result'
 import type { AppError } from '@/core/errors'
 import type { INotificationRepository } from '../domain/notification.repository'
-import type { AppNotification, NotificationListResult } from '../domain/notification.models'
+import type { NotificationListResult } from '../domain/notification.models'
 
 export class NotificationService {
   constructor(private readonly repo: INotificationRepository) {}
 
-  list(doctorId: number, limit?: number): Promise<Result<NotificationListResult, AppError>> {
-    return this.repo.list(doctorId, limit)
+  list(limit?: number): Promise<Result<NotificationListResult, AppError>> {
+    return this.repo.list(limit)
   }
 
-  markAsRead(id: string): Promise<Result<AppNotification, AppError>> {
+  markAsRead(id: number): Promise<Result<void, AppError>> {
     return this.repo.markAsRead(id)
   }
 
-  markAllAsRead(doctorId: number): Promise<Result<void, AppError>> {
-    return this.repo.markAllAsRead(doctorId)
-  }
-
-  remove(id: string): Promise<Result<void, AppError>> {
-    return this.repo.remove(id)
-  }
-
-  subscribe(doctorId: number, onInsert: (n: AppNotification) => void): () => void {
-    return this.repo.subscribe(doctorId, onInsert)
+  markAllAsRead(): Promise<Result<void, AppError>> {
+    return this.repo.markAllAsRead()
   }
 }

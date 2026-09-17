@@ -35,16 +35,27 @@ self.addEventListener('push', (event) => {
   const title = notification.title ?? data.title
   if (!title) return
 
+  // Tell any open dashboard, so its list and its unread count catch up
+  // without a second connection held open for the purpose.
+  const tellOpenTabs = self.clients
+    .matchAll({ type: 'window', includeUncontrolled: true })
+    .then((clients) => {
+      for (const client of clients) client.postMessage({ type: 'push', data })
+    })
+
   event.waitUntil(
-    self.registration.showNotification(title, {
-      body: notification.body ?? data.body ?? '',
-      icon: '/favicon.ico',
-      badge: '/favicon.ico',
-      // Keyed on the booking so a second message about the same appointment
-      // replaces the first rather than stacking under it.
-      tag: data.booking_id ? `booking-${data.booking_id}` : undefined,
-      data,
-    }),
+    Promise.all([
+      tellOpenTabs,
+      self.registration.showNotification(title, {
+        body: notification.body ?? data.body ?? '',
+        icon: '/favicon.ico',
+        badge: '/favicon.ico',
+        // Keyed on the booking so a second message about the same appointment
+        // replaces the first rather than stacking under it.
+        tag: data.booking_id ? `booking-${data.booking_id}` : undefined,
+        data,
+      }),
+    ]),
   )
 })
 

@@ -1,13 +1,27 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import AppSidebar from '@/shared/components/AppSidebar.vue'
 import AppTopbar from '@/shared/components/AppTopbar.vue'
+import { useNotificationStore } from '@/features/notifications/store/notification.store'
 
 const route = useRoute()
 const sidebarOpen = ref(false)
 const { t } = useI18n()
+
+// Here rather than in the sidebar, because the count belongs to the signed-in
+// session and not to the badge that happens to draw it: the list page reads
+// the same store, and neither should be fetching on the other's behalf.
+const notifications = useNotificationStore()
+let stopWatching: (() => void) | null = null
+
+onMounted(() => {
+  void notifications.fetch()
+  stopWatching = notifications.watchPush()
+})
+
+onUnmounted(() => stopWatching?.())
 const title = computed(() =>
   route.meta.titleKey ? t(route.meta.titleKey as string) : t('common.appName'),
 )

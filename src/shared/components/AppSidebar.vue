@@ -16,10 +16,10 @@ interface NavItem {
 }
 
 // Heroicons-style inline path strings keep the bundle free of an icon dep.
-// Consultations, prescriptions and notifications are not in this list because
-// they are not built: the pages exist, but there is no table behind any of
-// them and every one of them fails on open. A link to a page that breaks reads
-// as a broken system, which is worse than a system that does less.
+// Consultations and prescriptions are still not in this list: the pages exist,
+// but there is no table behind either and both fail on open. A link to a page
+// that breaks reads as a broken system, which is worse than a system that does
+// less. Notifications used to be in that company and no longer is.
 const items: NavItem[] = [
   { to: '/', label: 'nav.dashboard', icon: 'M3 12l9-9 9 9M5 10v10h14V10' },
   { to: '/queue', label: 'nav.queue', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
@@ -27,6 +27,7 @@ const items: NavItem[] = [
   { to: '/patients', label: 'nav.patients', icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-2a4 4 0 10-4-4 4 4 0 004 4z' },
   { to: '/payments', label: 'nav.payments', icon: 'M3 10h18M7 15h2m4 0h4M5 6h14a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z' },
   { to: '/reports', label: 'nav.reports', icon: 'M9 17v-6m4 6V7m4 10v-3M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z' },
+  { to: '/notifications', label: 'nav.notifications', icon: 'M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0a3 3 0 11-6 0m6 0H9' },
   { to: '/settings', label: 'nav.settings', icon: 'M10.3 3.6a2 2 0 013.4 0l.3.5a2 2 0 002.3 1l.6-.2a2 2 0 012.4 2.4l-.2.6a2 2 0 001 2.3l.5.3a2 2 0 010 3.4l-.5.3a2 2 0 00-1 2.3l.2.6a2 2 0 01-2.4 2.4l-.6-.2a2 2 0 00-2.3 1l-.3.5a2 2 0 01-3.4 0l-.3-.5a2 2 0 00-2.3-1l-.6.2a2 2 0 01-2.4-2.4l.2-.6a2 2 0 00-1-2.3l-.5-.3a2 2 0 010-3.4l.5-.3a2 2 0 001-2.3l-.2-.6A2 2 0 016.8 4.9l.6.2a2 2 0 002.3-1zM12 15a3 3 0 100-6 3 3 0 000 6z' },
 ]
 </script>

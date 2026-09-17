@@ -360,27 +360,22 @@ export interface Database {
       }
       notifications: {
         Row: {
-          id: string
-          doctor_id: number
-          type: string
+          id: number
+          user_id: string
+          kind: string
           title: string
-          body: string | null
-          is_read: boolean
-          entity_type: string | null
-          entity_id: string | null
+          body: string
+          data: Json
+          dedupe_key: string | null
+          send_after: string
           created_at: string
+          sent_at: string | null
+          read_at: string | null
+          attempts: number
+          last_error: string | null
         }
-        Insert: {
-          id?: string
-          doctor_id: number
-          type?: string
-          title: string
-          body?: string | null
-          is_read?: boolean
-          entity_type?: string | null
-          entity_id?: string | null
-        }
-        Update: Partial<Database['public']['Tables']['notifications']['Insert']>
+        Insert: never
+        Update: never
         Relationships: []
       }
     }
@@ -398,6 +393,8 @@ export interface Database {
       set_payment_status: { Args: { p_payment: number; p_status: string }; Returns: Json }
       register_device_token: { Args: { p_token: string; p_platform: string }; Returns: undefined }
       unregister_device_token: { Args: { p_token: string }; Returns: undefined }
+      mark_notification_read: { Args: { p_id: number }; Returns: undefined }
+      mark_all_notifications_read: { Args: Record<string, never>; Returns: number }
     }
     Enums: Record<never, never>
   }

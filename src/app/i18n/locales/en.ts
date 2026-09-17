@@ -231,6 +231,14 @@ export const en = {
     last30: 'Last 30 days',
     last90: 'Last 90 days',
   },
+  notifications: {
+    title: 'Notifications',
+    unread: 'Unread: {count}',
+    markAllRead: 'Mark all as read',
+    viewAll: 'View all',
+    emptyTitle: 'No notifications',
+    emptyBody: 'Every new booking and cancellation will appear here.',
+  },
   settings: {
     notifications: 'Browser notifications',
     notificationsSubtitle:
