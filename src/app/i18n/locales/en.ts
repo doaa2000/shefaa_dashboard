@@ -248,14 +248,18 @@ export const en = {
       on: 'On',
       off: 'Off',
       blocked: 'Blocked',
-      unavailable: 'Unavailable',
+      unconfigured: 'Not set up',
+      unsupported: 'Browser cannot',
     },
     pushHint: {
       on: 'This browser is notified of every new booking and cancellation.',
       off: 'The browser will ask for your permission.',
       blocked:
         'You refused once, and it cannot be asked again from here. Allow it from the padlock beside the address bar.',
-      unavailable: 'This browser has no notifications, or they are not configured for this deployment.',
+      unconfigured:
+        'Firebase is not fully configured for this deployment. The file is .env in the dashboard folder, and the six values begin with VITE_FIREBASE. Restart the server after editing it.',
+      unsupported:
+        'This browser cannot receive notifications. They work on secure origins (https) and on localhost.',
     },
     title: 'Settings',
     subtitle: 'Manage your profile and availability',

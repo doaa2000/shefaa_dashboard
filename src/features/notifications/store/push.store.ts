@@ -6,7 +6,7 @@ import type { PushState } from '../application/push.service'
 export const usePushStore = defineStore('push', () => {
   const service = container.pushService
 
-  const state = ref<PushState>('unavailable')
+  const state = ref<PushState>('unconfigured')
   const busy = ref(false)
 
   async function refresh(): Promise<void> {

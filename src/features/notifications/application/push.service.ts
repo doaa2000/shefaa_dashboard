@@ -6,8 +6,12 @@ import type { IPushRepository } from '../domain/push.repository'
 
 /** What the doctor sees on the settings card, and what the button may do. */
 export type PushState =
-  /** No Firebase settings in this deployment, or a browser without push. */
-  | 'unavailable'
+  /** This deployment has no Firebase settings. Nobody's browser is at fault,
+   *  and the person reading the card is the one who can fix it. */
+  | 'unconfigured'
+  /** Configured, but this browser cannot receive a push -- no service worker,
+   *  no PushManager, or an insecure origin. */
+  | 'unsupported'
   /** Never asked. The button asks. */
   | 'off'
   /** Asked and granted; this browser is registered. */
@@ -42,7 +46,8 @@ export class PushService {
   private registered: string | null = null
 
   async state(): Promise<PushState> {
-    if (!this.supportedHere()) return 'unavailable'
+    const blocker = this.blocker()
+    if (blocker) return blocker
 
     switch (Notification.permission) {
       case 'granted':
@@ -61,7 +66,8 @@ export class PushService {
    * did not follow one, and Safari always has.
    */
   async enable(): Promise<PushState> {
-    if (!this.supportedHere()) return 'unavailable'
+    const blocker = this.blocker()
+    if (blocker) return blocker
 
     const permission = await Notification.requestPermission()
     if (permission !== 'granted') {
@@ -83,7 +89,7 @@ export class PushService {
     // Permission first, and only then anything that would pull Firebase in: a
     // doctor who has never turned notifications on should not pay to download
     // the library that would have sent them.
-    if (!this.supportedHere()) return
+    if (this.blocker()) return
     if (Notification.permission !== 'granted') return
     await this.registerToken()
   }
@@ -111,20 +117,30 @@ export class PushService {
   }
 
   /**
-   * Everything that can be known without loading Firebase.
+   * Why this cannot work here, or null if it can.
    *
-   * The SDK's own isSupported() checks the same things and a little more, and
-   * it is still called before a token is asked for -- but calling it to draw a
-   * settings card would mean every signed-in page downloading the library to
-   * find out whether it is needed.
+   * Two answers rather than one, because they are addressed to different
+   * people. A missing setting is for whoever deploys this and is fixed in a
+   * file; a browser that cannot receive a push is for whoever is looking at
+   * the screen and is not fixed at all. Saying "unavailable" to both left the
+   * only person who could act on it guessing.
+   *
+   * Answered from the browser's own APIs rather than the SDK's isSupported(),
+   * which checks the same things and a little more but would have every
+   * signed-in page download the library to find out whether it is needed. It
+   * is still called before a token is asked for.
    */
-  private supportedHere(): boolean {
-    return Boolean(env.firebase) &&
+  private blocker(): PushState | null {
+    if (!env.firebase) return 'unconfigured'
+
+    const browserCanReceive =
       typeof Notification !== 'undefined' &&
       typeof navigator !== 'undefined' &&
       'serviceWorker' in navigator &&
       typeof window !== 'undefined' &&
       'PushManager' in window
+
+    return browserCanReceive ? null : 'unsupported'
   }
 
   private async registerToken(): Promise<void> {
