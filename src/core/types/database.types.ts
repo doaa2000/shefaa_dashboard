@@ -396,6 +396,8 @@ export interface Database {
       doctor_payments: { Args: { p_from: string; p_to: string }; Returns: Json }
       doctor_patient_visits: { Args: { p_patient: string }; Returns: Json }
       set_payment_status: { Args: { p_payment: number; p_status: string }; Returns: Json }
+      register_device_token: { Args: { p_token: string; p_platform: string }; Returns: undefined }
+      unregister_device_token: { Args: { p_token: string }; Returns: undefined }
     }
     Enums: Record<never, never>
   }

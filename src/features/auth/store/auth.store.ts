@@ -13,6 +13,7 @@ import type {
 
 export const useAuthStore = defineStore('auth', () => {
   const service = container.authService
+  const push = container.pushService
 
   const session = ref<Session | null>(null)
   const profile = ref<DoctorProfile | null>(null)
@@ -38,6 +39,10 @@ export const useAuthStore = defineStore('auth', () => {
         // account was unlinked -- or that never belonged to a doctor at all --
         // must not walk past the login screen.
         if (!profile.value) await discard()
+        // The device token belongs to whoever is signed in, and this browser
+        // may have been handed to someone else since. Silent: it only acts on
+        // a permission that was granted before, and never asks.
+        else await push.resume()
       }
     }
     unsubscribe ??= service.observe((next) => {
@@ -82,6 +87,8 @@ export const useAuthStore = defineStore('auth', () => {
       return false
     }
 
+    await push.resume()
+
     loading.value = false
     return true
   }
@@ -89,6 +96,7 @@ export const useAuthStore = defineStore('auth', () => {
   /// Drops the session without touching `error`, so the reason it was dropped
   /// survives to be shown.
   async function discard(): Promise<void> {
+    await push.release()
     await service.signOut()
     session.value = null
     profile.value = null
@@ -127,6 +135,9 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function signOut(): Promise<void> {
+    // Before the sign-out, never after: the database drops the row belonging
+    // to the caller, and a moment later there is no caller.
+    await push.release()
     await service.signOut()
     session.value = null
     profile.value = null
