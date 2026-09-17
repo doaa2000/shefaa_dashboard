@@ -1,11 +1,5 @@
-import { initializeApp, type FirebaseApp } from 'firebase/app'
-import {
-  deleteToken,
-  getMessaging,
-  getToken,
-  isSupported,
-  type Messaging,
-} from 'firebase/messaging'
+import type { FirebaseApp } from 'firebase/app'
+import type { Messaging } from 'firebase/messaging'
 import { env } from '@/core/config/env'
 import { isOk } from '@/core/result'
 import type { IPushRepository } from '../domain/push.repository'
@@ -48,7 +42,7 @@ export class PushService {
   private registered: string | null = null
 
   async state(): Promise<PushState> {
-    if (!(await this.available())) return 'unavailable'
+    if (!this.supportedHere()) return 'unavailable'
 
     switch (Notification.permission) {
       case 'granted':
@@ -67,7 +61,7 @@ export class PushService {
    * did not follow one, and Safari always has.
    */
   async enable(): Promise<PushState> {
-    if (!(await this.available())) return 'unavailable'
+    if (!this.supportedHere()) return 'unavailable'
 
     const permission = await Notification.requestPermission()
     if (permission !== 'granted') {
@@ -86,7 +80,10 @@ export class PushService {
    * because a prompt on the way in is a prompt nobody expected.
    */
   async resume(): Promise<void> {
-    if (!(await this.available())) return
+    // Permission first, and only then anything that would pull Firebase in: a
+    // doctor who has never turned notifications on should not pay to download
+    // the library that would have sent them.
+    if (!this.supportedHere()) return
     if (Notification.permission !== 'granted') return
     await this.registerToken()
   }
@@ -103,22 +100,38 @@ export class PushService {
     // browser is issued a token of their own rather than inheriting one that
     // was just withdrawn.
     try {
-      if (this.messaging) await deleteToken(this.messaging)
+      if (this.messaging) {
+        const { deleteToken } = await import('firebase/messaging')
+        await deleteToken(this.messaging)
+      }
     } catch {
       // A token that cannot be deleted locally is already gone from the
       // server, which is the half that matters.
     }
   }
 
-  private async available(): Promise<boolean> {
-    if (!env.firebase) return false
-    if (typeof Notification === 'undefined') return false
-    if (!('serviceWorker' in navigator)) return false
-    return await isSupported()
+  /**
+   * Everything that can be known without loading Firebase.
+   *
+   * The SDK's own isSupported() checks the same things and a little more, and
+   * it is still called before a token is asked for -- but calling it to draw a
+   * settings card would mean every signed-in page downloading the library to
+   * find out whether it is needed.
+   */
+  private supportedHere(): boolean {
+    return Boolean(env.firebase) &&
+      typeof Notification !== 'undefined' &&
+      typeof navigator !== 'undefined' &&
+      'serviceWorker' in navigator &&
+      typeof window !== 'undefined' &&
+      'PushManager' in window
   }
 
   private async registerToken(): Promise<void> {
     try {
+      const { getToken, isSupported } = await import('firebase/messaging')
+      if (!(await isSupported())) return
+
       const messaging = await this.connect()
       if (!messaging) return
 
@@ -142,6 +155,12 @@ export class PushService {
 
   private async connect(): Promise<Messaging | null> {
     if (!env.firebase) return null
+
+    // Imported here rather than at the top of the file so that the library
+    // lands in a chunk of its own, fetched the first time a browser is
+    // actually registered instead of on every page the doctor opens.
+    const { initializeApp } = await import('firebase/app')
+    const { getMessaging } = await import('firebase/messaging')
 
     this.app ??= initializeApp({
       apiKey: env.firebase.apiKey,
