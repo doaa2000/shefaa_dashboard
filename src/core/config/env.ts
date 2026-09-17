@@ -33,20 +33,62 @@ if (!parsed.success) {
   throw new Error(`Invalid environment configuration:\n${issues}`)
 }
 
-const firebase = parsed.data.VITE_FIREBASE_API_KEY &&
-    parsed.data.VITE_FIREBASE_PROJECT_ID &&
-    parsed.data.VITE_FIREBASE_MESSAGING_SENDER_ID &&
-    parsed.data.VITE_FIREBASE_APP_ID &&
-    parsed.data.VITE_FIREBASE_VAPID_KEY
-  ? {
-      apiKey: parsed.data.VITE_FIREBASE_API_KEY,
-      authDomain: parsed.data.VITE_FIREBASE_AUTH_DOMAIN ?? '',
-      projectId: parsed.data.VITE_FIREBASE_PROJECT_ID,
-      messagingSenderId: parsed.data.VITE_FIREBASE_MESSAGING_SENDER_ID,
-      appId: parsed.data.VITE_FIREBASE_APP_ID,
-      vapidKey: parsed.data.VITE_FIREBASE_VAPID_KEY,
-    }
-  : null
+/**
+ * A Firebase setting ends up in an HTTP header, and headers are Latin-1 only.
+ *
+ * Firebase puts the API key in `x-goog-api-key`, so a single invisible
+ * character pasted in with a value -- a directional mark copied out of
+ * right-to-left text, above all -- fails token registration with "String
+ * contains non ISO-8859-1 code point", thrown from inside the SDK, naming
+ * neither the setting nor the file it came from. It took a stack trace and
+ * several rounds to find once.
+ *
+ * Reported by name instead, and treated as not configured. Not a thrown error:
+ * a doctor should not be locked out of their own appointments because a
+ * notification key has a typo in it.
+ */
+function usable(name: string, value: string | undefined): string | null {
+  if (!value) return null
+
+  const trimmed = value.trim()
+  if (/^[\x20-\x7E]*$/.test(trimmed)) return trimmed
+
+  console.error(
+    `${name} contains a character that is not plain ASCII, most likely an ` +
+      'invisible one pasted in with it. Retype the value by hand in .env. ' +
+      'Notifications stay off until it is fixed.',
+  )
+  return null
+}
+
+const firebaseSettings = {
+  apiKey: usable('VITE_FIREBASE_API_KEY', parsed.data.VITE_FIREBASE_API_KEY),
+  authDomain: usable('VITE_FIREBASE_AUTH_DOMAIN', parsed.data.VITE_FIREBASE_AUTH_DOMAIN),
+  projectId: usable('VITE_FIREBASE_PROJECT_ID', parsed.data.VITE_FIREBASE_PROJECT_ID),
+  messagingSenderId: usable(
+    'VITE_FIREBASE_MESSAGING_SENDER_ID',
+    parsed.data.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  ),
+  appId: usable('VITE_FIREBASE_APP_ID', parsed.data.VITE_FIREBASE_APP_ID),
+  vapidKey: usable('VITE_FIREBASE_VAPID_KEY', parsed.data.VITE_FIREBASE_VAPID_KEY),
+}
+
+// authDomain is the one that may be absent without stopping anything.
+const firebase =
+  firebaseSettings.apiKey &&
+  firebaseSettings.projectId &&
+  firebaseSettings.messagingSenderId &&
+  firebaseSettings.appId &&
+  firebaseSettings.vapidKey
+    ? {
+        apiKey: firebaseSettings.apiKey,
+        authDomain: firebaseSettings.authDomain ?? '',
+        projectId: firebaseSettings.projectId,
+        messagingSenderId: firebaseSettings.messagingSenderId,
+        appId: firebaseSettings.appId,
+        vapidKey: firebaseSettings.vapidKey,
+      }
+    : null
 
 export const env = {
   supabaseUrl: parsed.data.VITE_SUPABASE_URL,
