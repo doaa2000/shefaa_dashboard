@@ -232,6 +232,23 @@ export const en = {
     last90: 'Last 90 days',
   },
   settings: {
+    notifications: 'Browser notifications',
+    notificationsSubtitle:
+      'Told about a new booking or a cancellation without opening the dashboard.',
+    pushEnable: 'Turn on notifications',
+    push: {
+      on: 'On',
+      off: 'Off',
+      blocked: 'Blocked',
+      unavailable: 'Unavailable',
+    },
+    pushHint: {
+      on: 'This browser is notified of every new booking and cancellation.',
+      off: 'The browser will ask for your permission.',
+      blocked:
+        'You refused once, and it cannot be asked again from here. Allow it from the padlock beside the address bar.',
+      unavailable: 'This browser has no notifications, or they are not configured for this deployment.',
+    },
     title: 'Settings',
     subtitle: 'Manage your profile and availability',
     profile: 'Profile',

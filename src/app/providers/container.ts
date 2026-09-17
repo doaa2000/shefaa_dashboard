@@ -18,6 +18,9 @@ import { PrescriptionService } from '@/features/prescriptions/application/prescr
 import { SupabaseNotificationRepository } from '@/features/notifications/infrastructure/supabase-notification.repository'
 import { NotificationService } from '@/features/notifications/application/notification.service'
 
+import { SupabasePushRepository } from '@/features/notifications/infrastructure/supabase-push.repository'
+import { PushService } from '@/features/notifications/application/push.service'
+
 import { SupabaseDashboardRepository } from '@/features/dashboard/infrastructure/supabase-dashboard.repository'
 import { DashboardService } from '@/features/dashboard/application/dashboard.service'
 
@@ -45,6 +48,7 @@ function createContainer() {
   const consultationService = new ConsultationService(new SupabaseConsultationRepository(supabase))
   const prescriptionService = new PrescriptionService(new SupabasePrescriptionRepository(supabase))
   const notificationService = new NotificationService(new SupabaseNotificationRepository(supabase))
+  const pushService = new PushService(new SupabasePushRepository(supabase))
   const dashboardService = new DashboardService(new SupabaseDashboardRepository(supabase))
   const reportService = new ReportService(new SupabaseReportRepository(supabase))
   const scheduleService = new ScheduleService(new SupabaseScheduleRepository(supabase))
@@ -57,6 +61,7 @@ function createContainer() {
     consultationService,
     prescriptionService,
     notificationService,
+    pushService,
     dashboardService,
     reportService,
     scheduleService,
