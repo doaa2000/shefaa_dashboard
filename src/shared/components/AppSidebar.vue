@@ -42,7 +42,9 @@ const items: NavItem[] = [
     "
   >
     <div class="flex h-16 items-center gap-2 border-b border-surface-border px-6">
-      <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-primary-600 text-white font-bold">S</span>
+      <!-- The app's own mark. Sized by height and left at its proportions: it
+           is a tall S, and a square slot padded it into a smudge. -->
+      <img src="/logo.png" alt="" class="h-9 w-auto" />
       <span class="text-lg font-semibold text-slate-900">{{ t('common.appName') }}</span>
     </div>
     <nav class="space-y-1 p-3">

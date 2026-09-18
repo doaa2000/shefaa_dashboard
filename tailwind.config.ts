@@ -6,33 +6,44 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Shefaa brand palette (medical / calm).
+        // The patient app's palette, so the two are recognisably one product.
+        //
+        // 400 is #67b2d8 exactly -- AppColors.primaryColor in the app, and the
+        // light end of the logo's own gradient. The rest of the ramp is that
+        // hue at other lightnesses.
+        //
+        // The brand colour itself carries white text at 2.35:1, which is not
+        // readable, so buttons and active states use 600. That is dark enough
+        // for white at 4.90:1, past the 4.5 a 14px label needs.
         primary: {
-          50: '#eef9f7',
-          100: '#d6f1ec',
-          200: '#aee3da',
-          300: '#7ccfc3',
-          400: '#48b3a6',
-          500: '#2a9688',
-          600: '#1f796f',
-          700: '#1c615a',
-          800: '#1a4e49',
-          900: '#17413e',
+          50: '#f0f6f9',
+          100: '#deebf2',
+          200: '#b9d9e9',
+          300: '#8dc5e2',
+          400: '#67b2d8',
+          500: '#3c9ccd',
+          600: '#2978a0',
+          700: '#216182',
+          800: '#1b4f6a',
+          900: '#153d51',
         },
+        // The dark end of the same gradient, which is where the logo finishes.
         accent: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
+          50: '#eef4f7',
+          100: '#d5e4ea',
+          200: '#a9c6d3',
+          300: '#75a3b8',
+          400: '#4a7f97',
+          500: '#356376',
+          600: '#265162',
+          700: '#1c414f',
         },
         surface: {
           DEFAULT: '#ffffff',
-          muted: '#f7f9fb',
-          border: '#e6ebf0',
+          // Tinted a shade towards the brand rather than left neutral grey, so
+          // the page behind the cards belongs to the same palette.
+          muted: '#f6f9fb',
+          border: '#e3ebf0',
         },
       },
       fontFamily: {
