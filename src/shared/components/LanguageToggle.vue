@@ -14,7 +14,7 @@ function toggle() {
 
 <template>
   <button
-    class="rounded-xl border border-surface-border px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-surface-muted"
+    class="rounded-xl border border-surface-border px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-primary-100"
     type="button"
     @click="toggle"
   >

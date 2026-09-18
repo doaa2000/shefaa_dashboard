@@ -48,7 +48,7 @@ watch(
             <slot name="header">
               <h3 class="text-base font-semibold text-slate-800">{{ title }}</h3>
             </slot>
-            <button class="rounded-lg p-1 text-slate-400 hover:bg-slate-100" :aria-label="t('common.close')" @click="close">
+            <button class="rounded-lg p-1 text-slate-400 hover:bg-primary-100" :aria-label="t('common.close')" @click="close">
               <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" d="M6 6l12 12M6 18L18 6" />
               </svg>

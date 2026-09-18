@@ -57,7 +57,7 @@ const { t } = useI18n()
           v-for="row in rows"
           v-else
           :key="row.id"
-          :class="rowClickable ? 'cursor-pointer hover:bg-surface-muted' : ''"
+          :class="rowClickable ? 'cursor-pointer hover:bg-primary-50' : ''"
           @click="rowClickable && emit('rowClick', row)"
         >
           <td

@@ -48,7 +48,7 @@ onMounted(() => store.fetch())
         <li v-for="n in items" :key="n.id">
           <button
             type="button"
-            class="flex w-full items-start gap-3 px-5 py-4 text-start transition-colors hover:bg-surface-muted"
+            class="flex w-full items-start gap-3 px-5 py-4 text-start transition-colors hover:bg-primary-50"
             :class="n.isRead ? '' : 'bg-primary-50/40'"
             @click="open(n)"
           >

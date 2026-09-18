@@ -36,7 +36,7 @@ function goToAll() {
 <template>
   <div ref="root" class="relative">
     <button
-      class="relative flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 hover:bg-surface-muted"
+      class="relative flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 hover:bg-primary-100"
       :aria-label="t('notifications.title')"
       @click="open = !open"
     >
@@ -79,7 +79,7 @@ function goToAll() {
         <li v-for="n in items.slice(0, 6)" :key="n.id">
           <button
             type="button"
-            class="w-full px-4 py-3 text-start hover:bg-surface-muted"
+            class="w-full px-4 py-3 text-start hover:bg-primary-100"
             :class="n.isRead ? '' : 'bg-primary-50/40'"
             @click="go(n)"
           >
@@ -91,7 +91,7 @@ function goToAll() {
       </ul>
 
       <button
-        class="w-full border-t border-surface-border py-2.5 text-sm font-medium text-primary-900 hover:bg-surface-muted"
+        class="w-full border-t border-surface-border py-2.5 text-sm font-medium text-primary-900 hover:bg-primary-100"
         @click="goToAll"
       >
         {{ t('notifications.viewAll') }}
