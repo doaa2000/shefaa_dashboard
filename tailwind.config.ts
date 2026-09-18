@@ -8,24 +8,27 @@ export default {
       colors: {
         // The patient app's palette, so the two are recognisably one product.
         //
-        // 400 is #67b2d8 exactly -- AppColors.primaryColor in the app, and the
-        // light end of the logo's own gradient. The rest of the ramp is that
-        // hue at other lightnesses.
+        // 600 is #67b2d8 exactly -- AppColors.primaryColor, the fill of every
+        // CustomButton in the app and the colour it writes its links and icons
+        // in. 600 rather than some other step because 600 is what this
+        // dashboard already reaches for everywhere it means "this colour", so
+        // anchoring it here makes every one of those the app's blue at once.
         //
-        // The brand colour itself carries white text at 2.35:1, which is not
-        // readable, so buttons and active states use 600. That is dark enough
-        // for white at 4.90:1, past the 4.5 a 14px label needs.
+        // 900 is the same blue at the dark end. It is not a second brand
+        // colour: it is for the two places the brand cannot go -- small text
+        // on a tinted chip, and the focus outline drawn around a button, which
+        // is not an outline if it is the colour of the button.
         primary: {
-          50: '#f0f6f9',
-          100: '#deebf2',
-          200: '#b9d9e9',
-          300: '#8dc5e2',
-          400: '#67b2d8',
-          500: '#3c9ccd',
-          600: '#2978a0',
-          700: '#216182',
-          800: '#1b4f6a',
-          900: '#153d51',
+          50: '#f2f7fa',
+          100: '#e3eff4',
+          200: '#c6e0ee',
+          300: '#a8d3e9',
+          400: '#8bc4e1',
+          500: '#7abcdd',
+          600: '#67b2d8',
+          700: '#3e9dce',
+          800: '#2c80aa',
+          900: '#216182',
         },
         // The dark end of the same gradient, which is where the logo finishes.
         accent: {

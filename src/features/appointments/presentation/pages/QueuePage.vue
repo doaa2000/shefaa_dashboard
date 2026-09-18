@@ -101,11 +101,11 @@ async function settle(entry: QueueEntry, status: 'completed' | 'no_show') {
         v-if="queue.current"
         class="rounded-2xl border border-primary-200 bg-primary-50 p-5"
       >
-        <p class="text-xs font-medium uppercase tracking-wide text-primary-700">{{ t('queue.nowServing') }}</p>
+        <p class="text-xs font-medium uppercase tracking-wide text-primary-900">{{ t('queue.nowServing') }}</p>
         <div class="mt-2 flex flex-wrap items-center justify-between gap-4">
           <div class="flex items-center gap-4">
             <span
-              class="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-400 text-2xl font-bold text-white"
+              class="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-600 text-2xl font-bold text-white"
             >
               {{ queue.current.position }}
             </span>

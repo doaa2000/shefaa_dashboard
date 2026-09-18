@@ -53,7 +53,7 @@ const items: NavItem[] = [
         :key="item.to"
         :to="item.to"
         class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-surface-muted"
-        active-class="bg-primary-50 text-primary-700"
+        active-class="bg-primary-50 text-primary-900"
         @click="emit('close')"
       >
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">

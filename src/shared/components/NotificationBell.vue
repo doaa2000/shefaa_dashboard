@@ -65,7 +65,7 @@ function goToAll() {
         <p class="text-sm font-semibold text-slate-800">{{ t('notifications.title') }}</p>
         <button
           v-if="unreadCount > 0"
-          class="text-xs font-medium text-primary-600 hover:underline"
+          class="text-xs font-medium text-primary-900 hover:underline"
           @click="store.markAllAsRead()"
         >
           {{ t('notifications.markAllRead') }}
@@ -91,7 +91,7 @@ function goToAll() {
       </ul>
 
       <button
-        class="w-full border-t border-surface-border py-2.5 text-sm font-medium text-primary-600 hover:bg-surface-muted"
+        class="w-full border-t border-surface-border py-2.5 text-sm font-medium text-primary-900 hover:bg-surface-muted"
         @click="goToAll"
       >
         {{ t('notifications.viewAll') }}

@@ -188,7 +188,7 @@ function exportCsv() {
       </div>
       <div class="rounded-2xl border border-surface-border bg-white p-5 shadow-card">
         <p class="text-sm font-medium text-slate-500">{{ t('payments.net') }}</p>
-        <p class="mt-2 text-2xl font-semibold text-primary-700">{{ money(summary.net) }}</p>
+        <p class="mt-2 text-2xl font-semibold text-primary-900">{{ money(summary.net) }}</p>
       </div>
     </div>
 

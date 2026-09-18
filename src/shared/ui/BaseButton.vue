@@ -19,18 +19,18 @@ const props = withDefaults(
 
 defineEmits<{ click: [event: MouseEvent] }>()
 
-// 400 is the brand colour itself, which is what CustomButton fills with in the
-// app -- white on #67b2d8, exactly. A darker shade read better and looked like
-// a different product, and looking like one product is the point.
+// The brand colour fills it, and hover fades the same colour rather than
+// stepping to a different one -- which is what the app does too: CustomButton
+// never darkens, it only changes the alpha.
 //
-// The ring stays dark: it is the keyboard focus outline, and an outline the
-// same lightness as the button it surrounds is not an outline.
+// The ring is the one exception. It is the keyboard focus outline, and an
+// outline the colour of the button it surrounds is not an outline.
 const variants: Record<Variant, string> = {
-  primary: 'bg-primary-400 text-white hover:bg-primary-500 focus-visible:ring-primary-700',
-  secondary: 'bg-primary-50 text-primary-700 hover:bg-primary-100 focus-visible:ring-primary-400',
+  primary: 'bg-primary-600 text-white hover:bg-primary-600/85 focus-visible:ring-primary-900',
+  secondary: 'bg-primary-50 text-primary-900 hover:bg-primary-100 focus-visible:ring-primary-900',
   ghost: 'bg-transparent text-slate-600 hover:bg-slate-100 focus-visible:ring-slate-300',
   danger: 'bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500',
-  outline: 'border border-surface-border bg-white text-slate-700 hover:bg-slate-50 focus-visible:ring-primary-400',
+  outline: 'border border-surface-border bg-white text-slate-700 hover:bg-slate-50 focus-visible:ring-primary-900',
 }
 
 const sizes: Record<Size, string> = {

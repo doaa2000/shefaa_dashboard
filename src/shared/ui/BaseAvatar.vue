@@ -14,7 +14,7 @@ const label = computed(() => initials(props.name))
 <template>
   <span
     :class="[
-      'inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-100 font-semibold text-primary-700',
+      'inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-100 font-semibold text-primary-900',
       sizes[size],
     ]"
   >

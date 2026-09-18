@@ -41,11 +41,11 @@ const chartData = computed<ChartData<'line'>>(() => ({
     {
       label: t('reports.appointments'),
       data: (trend.value?.points ?? []).map((p) => p.total),
-      // The two survivors of the old palette. Chart.js takes colours rather
-      // than class names, so these are the brand written out by hand:
-      // primary-600 for the line, primary-400 faded for what is under it.
-      borderColor: '#2978a0',
-      backgroundColor: 'rgba(103, 178, 216, 0.16)',
+      // Chart.js takes colours rather than class names, so the brand is
+      // written out by hand here: primary-600 for the line, and the same
+      // colour faded for what is under it.
+      borderColor: '#67b2d8',
+      backgroundColor: 'rgba(103, 178, 216, 0.18)',
       fill: true,
       tension: 0.35,
       pointRadius: 2,
