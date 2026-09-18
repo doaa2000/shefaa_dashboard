@@ -6,7 +6,6 @@ import type { DashboardSummary } from '../domain/dashboard.models'
 
 interface SummaryRow {
   total_patients: number
-  new_patients_this_month: number
   appointments_today: number
   appointments_upcoming: number
   unread_notifications: number
@@ -23,7 +22,6 @@ export class SupabaseDashboardRepository implements IDashboardRepository {
       const row = data as unknown as SummaryRow
       return ok({
         totalPatients: row.total_patients,
-        newPatientsThisMonth: row.new_patients_this_month,
         appointmentsToday: row.appointments_today,
         appointmentsUpcoming: row.appointments_upcoming,
         unreadNotifications: row.unread_notifications,
