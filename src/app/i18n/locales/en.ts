@@ -82,6 +82,7 @@ export const en = {
     greeting: 'Welcome back, {name}',
     subtitle: "Here's an overview of your practice today.",
     totalPatients: 'Total patients',
+    newPatientsThisMonth: 'New patients this month',
     appointmentsToday: 'Appointments today',
     appointmentsUpcoming: 'Upcoming appointments',
     revenueThisMonth: 'Revenue this month',
@@ -176,6 +177,9 @@ export const en = {
     outstandingNote: 'Cancelled appointments are not counted.',
     paidAppointments: 'Paid appointments',
     refunded: 'Refunded',
+    newPatients: 'New patients',
+    newPatientsNote:
+      'People who had never booked with you before, and arrived through the app in this period.',
     commission: 'Platform share',
     commissionNote: 'Charged on bookings that were not cancelled.',
     net: 'Your net',

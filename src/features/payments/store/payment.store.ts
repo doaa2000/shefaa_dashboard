@@ -42,6 +42,7 @@ const emptySummary: PaymentSummary = {
   commission: 0,
   net: 0,
   unrated: 0,
+  newPatients: 0,
 }
 
 export const usePaymentStore = defineStore('payments', () => {

@@ -175,6 +175,15 @@ function exportCsv() {
       </div>
     </div>
 
+    <!-- Read in this order on purpose: what the period brought, then what it
+         cost, then what is left. The commission on its own is a deduction with
+         nothing beside it, and a page that only ever deducts is a bill. -->
+    <div class="rounded-2xl border border-primary-200 bg-primary-50 p-5">
+      <p class="text-sm font-medium text-slate-600">{{ t('payments.newPatients') }}</p>
+      <p class="mt-2 text-3xl font-semibold text-primary-900">{{ summary.newPatients }}</p>
+      <p class="mt-1 text-xs text-slate-500">{{ t('payments.newPatientsNote') }}</p>
+    </div>
+
     <!-- The platform's share, shown rather than deducted quietly. A doctor who
          cannot see what was taken is a doctor who will ask, and be right to. -->
     <div class="grid gap-4 sm:grid-cols-2">

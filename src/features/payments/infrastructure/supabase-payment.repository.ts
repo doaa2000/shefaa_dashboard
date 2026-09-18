@@ -44,6 +44,7 @@ export class SupabasePaymentRepository implements IPaymentRepository {
           commission: Number(summary?.commission ?? 0),
           net: Number(summary?.net ?? 0),
           unrated: Number(summary?.unrated ?? 0),
+          newPatients: Number(summary?.newPatients ?? 0),
         },
         byMethod: (raw.byMethod ?? []).map(
           (m): MethodTotals => ({

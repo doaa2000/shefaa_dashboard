@@ -84,6 +84,7 @@ export const ar: Messages = {
     greeting: 'أهلًا بعودتك، {name}',
     subtitle: 'هذه نظرة عامة على عيادتك اليوم.',
     totalPatients: 'إجمالي المرضى',
+    newPatientsThisMonth: 'مرضى جدد هذا الشهر',
     appointmentsToday: 'مواعيد اليوم',
     appointmentsUpcoming: 'المواعيد القادمة',
     revenueThisMonth: 'إيرادات هذا الشهر',
@@ -178,6 +179,9 @@ export const ar: Messages = {
     outstandingNote: 'المواعيد الملغاة غير محسوبة.',
     paidAppointments: 'المواعيد المدفوعة',
     refunded: 'المسترد',
+    newPatients: 'مرضى جدد',
+    newPatientsNote:
+      'مرضى لم يسبق لهم الحجز عندك، جاؤوا خلال هذه الفترة عبر التطبيق.',
     commission: 'عمولة المنصة',
     commissionNote: 'تُحتسب على الحجوزات التي لم تُلغَ.',
     net: 'صافي حسابك',

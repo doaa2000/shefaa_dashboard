@@ -39,13 +39,19 @@ onMounted(() => store.fetchSummary())
 
     <div v-else-if="summary" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
       <StatCard :label="t('dashboard.totalPatients')" :value="summary.totalPatients" tone="primary" />
+      <!-- Next to the total rather than off on its own: the interesting thing
+           about it is the share of the whole it represents. -->
+      <StatCard
+        :label="t('dashboard.newPatientsThisMonth')"
+        :value="summary.newPatientsThisMonth"
+        tone="primary"
+      />
       <StatCard :label="t('dashboard.appointmentsToday')" :value="summary.appointmentsToday" tone="accent" />
       <StatCard :label="t('dashboard.appointmentsUpcoming')" :value="summary.appointmentsUpcoming" tone="amber" />
       <!--
-        Consultations and prescriptions are not built. A tile reading "0" for
-        something that cannot happen is not a measurement, it is a promise the
-        doctor will wonder why nobody keeps. The fields stay in the summary so
-        the tiles can come back the day the features do.
+        Consultations and prescriptions are not built, and the summary no
+        longer carries a zero for them: a field that is written rather than
+        counted reads exactly like one that was.
       -->
       <StatCard
         :label="t('dashboard.revenueThisMonth')"

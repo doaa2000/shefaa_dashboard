@@ -46,6 +46,13 @@ export interface PaymentSummary {
   /** Bookings from before the platform had a share. Reported so the doctor can
    *  see the figures above do not silently include them. */
   unrated: number
+  /** Patients whose first ever visit to this doctor falls inside the period.
+   *
+   *  The answer to what the commission bought. Every booking here came from
+   *  the app -- the dashboard has had no way to enter one since the walk-in
+   *  path was removed -- so these are people who would not otherwise have
+   *  arrived. */
+  newPatients: number
 }
 
 /** Cash is in the drawer and instapay is in the bank; they are counted apart
