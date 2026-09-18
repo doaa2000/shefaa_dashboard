@@ -35,11 +35,14 @@ export function presetRange(preset: Exclude<RangePreset, 'custom'>): DateRange {
 
 const emptySummary: PaymentSummary = {
   collected: 0,
+  collectedOff: 0,
   outstanding: 0,
   refunded: 0,
   paidCount: 0,
   totalCount: 0,
+  unpaidCount: 0,
   commission: 0,
+  commissionable: 0,
   net: 0,
   unrated: 0,
 }

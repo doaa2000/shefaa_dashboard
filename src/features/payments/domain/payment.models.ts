@@ -33,16 +33,28 @@ export interface Payment {
 }
 
 export interface PaymentSummary {
+  /** Fees taken for appointments that happened. */
   collected: number
+  /** Fees taken for appointments that were cancelled or never attended. Kept
+   *  apart from `collected` so the money in the drawer and the money the
+   *  period earned are never added into one figure. */
+  collectedOff: number
   outstanding: number
   refunded: number
   paidCount: number
   totalCount: number
+  /** Appointments still waiting to be collected. Counted in the database, not
+   *  as total minus paid, which reads a refund as money owed. */
+  unpaidCount: number
   /** Charged on every booking that was not cancelled, collected or not: the
    *  share is earned by the booking, and collecting the fee is between the
    *  doctor and the patient. */
   commission: number
   net: number
+  /** The fees the share was actually charged on. Lower than the total whenever
+   *  the period contains bookings made before the commission existed, and the
+   *  number the percentage has to be read against. */
+  commissionable: number
   /** Bookings from before the platform had a share. Reported so the doctor can
    *  see the figures above do not silently include them. */
   unrated: number

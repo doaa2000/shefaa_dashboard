@@ -74,7 +74,12 @@ const methodLine = computed(() =>
     : '',
 )
 
-const unpaidCount = computed(() => summary.value.totalCount - summary.value.paidCount)
+/** Lower than the fees total whenever the period holds bookings made before
+ *  the commission existed. The percentage is read against this, so it is shown
+ *  beside it rather than left to be worked out. */
+const partlyCommissionable = computed(
+  () => summary.value.commissionable > 0 && summary.value.commissionable !== feesTotal.value,
+)
 
 /** What the period earned before the platform's share came out of it. The
  *  share was taken off `net` by the database, so adding it back is the same
@@ -240,13 +245,23 @@ function exportCsv() {
         <p v-if="summary.refunded > 0" class="mt-1 text-xs text-slate-400">
           {{ t('payments.refundedLine', { amount: money(summary.refunded) }) }}
         </p>
+        <!-- Money taken for a visit that never happened. It is in the drawer,
+             so it is said out loud -- but not inside the figure above, which
+             is what the period earned from seeing patients. -->
+        <p v-if="summary.collectedOff > 0" class="mt-1 text-xs text-slate-400">
+          {{ t('payments.collectedOff', { amount: money(summary.collectedOff) }) }}
+        </p>
       </div>
 
       <div class="rounded-2xl border border-surface-border bg-white p-5 shadow-card">
         <p class="text-sm font-medium text-slate-500">{{ t('payments.outstanding') }}</p>
         <p class="mt-2 text-2xl font-semibold text-amber-600">{{ money(summary.outstanding) }}</p>
         <p class="mt-1 text-xs text-slate-400">
-          {{ t('payments.outstandingCount', { count: unpaidCount, total: summary.totalCount }) }}
+          {{
+            summary.unpaidCount === 0
+              ? t('payments.allCollected')
+              : t('payments.outstandingCount', { count: summary.unpaidCount })
+          }}
         </p>
       </div>
 
@@ -260,6 +275,10 @@ function exportCsv() {
           <div class="flex items-center justify-between gap-2">
             <dt class="text-slate-500">{{ t('payments.feesTotal') }}</dt>
             <dd class="font-medium text-slate-700">{{ money(feesTotal) }}</dd>
+          </div>
+          <div v-if="partlyCommissionable" class="flex items-center justify-between gap-2">
+            <dt class="text-slate-500">{{ t('payments.commissionable') }}</dt>
+            <dd class="font-medium text-slate-700">{{ money(summary.commissionable) }}</dd>
           </div>
           <!-- "less" carries the sign, so no minus glyph has to survive being
                mirrored into an Arabic line. -->

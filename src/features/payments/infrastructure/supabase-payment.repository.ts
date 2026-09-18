@@ -37,12 +37,15 @@ export class SupabasePaymentRepository implements IPaymentRepository {
         range: raw.range ?? range,
         summary: {
           collected: Number(summary?.collected ?? 0),
+          collectedOff: Number(summary?.collectedOff ?? 0),
           outstanding: Number(summary?.outstanding ?? 0),
           refunded: Number(summary?.refunded ?? 0),
           paidCount: Number(summary?.paidCount ?? 0),
           totalCount: Number(summary?.totalCount ?? 0),
+          unpaidCount: Number(summary?.unpaidCount ?? 0),
           commission: Number(summary?.commission ?? 0),
           net: Number(summary?.net ?? 0),
+          commissionable: Number(summary?.commissionable ?? 0),
           unrated: Number(summary?.unrated ?? 0),
         },
         byMethod: (raw.byMethod ?? []).map(
