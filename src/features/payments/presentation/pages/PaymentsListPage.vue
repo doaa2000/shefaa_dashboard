@@ -74,11 +74,11 @@ const methodLine = computed(() =>
     : '',
 )
 
-/** Lower than the fees total whenever the period holds bookings made before
- *  the commission existed. The percentage is read against this, so it is shown
- *  beside it rather than left to be worked out. */
-const partlyCommissionable = computed(
-  () => summary.value.commissionable > 0 && summary.value.commissionable !== feesTotal.value,
+/** How many consultations carried a share. The share is charged per
+ *  consultation -- fee times that booking's own rate -- and the figure on the
+ *  card is those amounts added up, so the card says how many were added. */
+const chargedCount = computed(
+  () => items.value.filter((p) => p.commissionAmount != null).length,
 )
 
 /** What the period earned before the platform's share came out of it. The
@@ -103,14 +103,20 @@ const commissionRate = computed<number | null>(() => {
   return rates.size === 1 ? [...rates][0] : null
 })
 
+/**
+ * Named as what it is: a rate charged on each consultation, not a slice taken
+ * off a month's turnover. The two come to the same figure and are not the same
+ * arrangement, and the card is where a doctor decides which one they are in.
+ */
 const commissionLabel = computed(() => {
   const rate = commissionRate.value
-  if (rate == null) return t('payments.lessCommission')
+  const count = chargedCount.value
+  if (rate == null) return t('payments.perVisit', { count })
   const percent = new Intl.NumberFormat(intlLocale(), {
     style: 'percent',
     maximumFractionDigits: 2,
   }).format(rate)
-  return t('payments.lessCommissionAt', { rate: percent })
+  return t('payments.perVisitAt', { rate: percent, count })
 })
 
 const statusTone = (s: string | null) =>
@@ -276,12 +282,6 @@ function exportCsv() {
             <dt class="text-slate-500">{{ t('payments.feesTotal') }}</dt>
             <dd class="font-medium text-slate-700">{{ money(feesTotal) }}</dd>
           </div>
-          <div v-if="partlyCommissionable" class="flex items-center justify-between gap-2">
-            <dt class="text-slate-500">{{ t('payments.commissionable') }}</dt>
-            <dd class="font-medium text-slate-700">{{ money(summary.commissionable) }}</dd>
-          </div>
-          <!-- "less" carries the sign, so no minus glyph has to survive being
-               mirrored into an Arabic line. -->
           <div class="flex items-center justify-between gap-2">
             <dt class="text-slate-500">{{ commissionLabel }}</dt>
             <dd class="font-medium text-slate-700">{{ money(summary.commission) }}</dd>
