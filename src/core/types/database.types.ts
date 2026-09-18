@@ -358,6 +358,29 @@ export interface Database {
           },
         ]
       }
+      commission_invoices: {
+        Row: {
+          id: number
+          doctor_id: number
+          period_start: string
+          period_end: string
+          bookings: number
+          fees: number
+          commission: number
+          status: string
+          issued_at: string
+          paid_at: string | null
+          paid_note: string | null
+          void_reason: string | null
+          voided_at: string | null
+        }
+        // Raised, settled and withdrawn by the owner through functions. A
+        // doctor may read their own and nothing else, which is the whole of
+        // their relationship with this table.
+        Insert: never
+        Update: never
+        Relationships: []
+      }
       notifications: {
         Row: {
           id: number

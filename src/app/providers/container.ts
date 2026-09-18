@@ -33,6 +33,9 @@ import { ScheduleService } from '@/features/settings/application/schedule.servic
 import { SupabasePaymentRepository } from '@/features/payments/infrastructure/supabase-payment.repository'
 import { PaymentService } from '@/features/payments/application/payment.service'
 
+import { SupabaseInvoiceRepository } from '@/features/invoices/infrastructure/supabase-invoice.repository'
+import { InvoiceService } from '@/features/invoices/application/invoice.service'
+
 /**
  * Composition root.
  *
@@ -53,6 +56,7 @@ function createContainer() {
   const reportService = new ReportService(new SupabaseReportRepository(supabase))
   const scheduleService = new ScheduleService(new SupabaseScheduleRepository(supabase))
   const paymentService = new PaymentService(new SupabasePaymentRepository(supabase))
+  const invoiceService = new InvoiceService(new SupabaseInvoiceRepository(supabase))
 
   return {
     authService,
@@ -66,6 +70,7 @@ function createContainer() {
     reportService,
     scheduleService,
     paymentService,
+    invoiceService,
   } as const
 }
 

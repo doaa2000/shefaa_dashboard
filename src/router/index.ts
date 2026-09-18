@@ -8,6 +8,7 @@ import { consultationRoutes } from '@/features/consultations/routes'
 import { prescriptionRoutes } from '@/features/prescriptions/routes'
 import { reportRoutes } from '@/features/reports/routes'
 import { paymentRoutes } from '@/features/payments/routes'
+import { invoiceRoutes } from '@/features/invoices/routes'
 import { notificationRoutes } from '@/features/notifications/routes'
 import { settingsRoutes } from '@/features/settings/routes'
 import { registerGuards } from './guards'
@@ -21,6 +22,7 @@ const routes: RouteRecordRaw[] = [
   ...prescriptionRoutes,
   ...reportRoutes,
   ...paymentRoutes,
+  ...invoiceRoutes,
   ...notificationRoutes,
   ...settingsRoutes,
   {

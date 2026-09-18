@@ -2,7 +2,11 @@
 import { computed, onMounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
+import { RouterLink } from 'vue-router'
 import { usePaymentStore, type RangePreset } from '../../store/payment.store'
+import { useInvoiceStore } from '@/features/invoices/store/invoice.store'
+import { coversWholeMonth } from '@/features/invoices/domain/invoice.models'
+import { intlLocale } from '@/app/i18n'
 import { useToast } from '@/shared/composables/useToast'
 import { formatDate, formatDateTime } from '@/shared/utils/datetime'
 import { formatMoney, labelFor } from '@/shared/utils/formatters'
@@ -12,8 +16,10 @@ import MethodBreakdown from '../components/MethodBreakdown.vue'
 import { BaseBadge, BaseButton, BaseSelect, BaseTable, type Column } from '@/shared/ui'
 
 const store = usePaymentStore()
+const invoices = useInvoiceStore()
 const toast = useToast()
 const { t } = useI18n()
+const { latestOutstanding, outstandingTotal } = storeToRefs(invoices)
 const { range, preset, visibleItems, summary, byMethod, loading, savingId, error, statusFilter, methodFilter } =
   storeToRefs(store)
 
@@ -58,7 +64,23 @@ const statusLabel = (s: string | null) => labelFor('paymentStatus', s)
 const slot = (p: Payment) =>
   p.startTime && p.endTime ? `${p.startTime.slice(0, 5)} – ${p.endTime.slice(0, 5)}` : '—'
 
-onMounted(() => store.fetchList())
+onMounted(() => {
+  store.fetchList()
+  // The commission figure above is a running total; this tells the doctor
+  // which part of it has actually been billed, and whether it is still owed.
+  invoices.ensureLoaded()
+})
+
+/** Named the way the invoices page names it, so the two agree on sight. */
+const dueLabel = computed(() => {
+  const invoice = latestOutstanding.value
+  if (!invoice) return ''
+  return coversWholeMonth(invoice.periodStart, invoice.periodEnd)
+    ? new Intl.DateTimeFormat(intlLocale(), { month: 'long', year: 'numeric' }).format(
+        new Date(`${invoice.periodStart}T00:00:00`),
+      )
+    : `${formatDate(invoice.periodStart)} – ${formatDate(invoice.periodEnd)}`
+})
 watch(range, () => store.fetchList(), { deep: true })
 watch(error, (e) => {
   if (e) toast.error(e.message ?? t('payments.toast.loadFailed'))
@@ -174,6 +196,30 @@ function exportCsv() {
         <p class="mt-2 text-2xl font-semibold text-slate-900">{{ money(summary.refunded) }}</p>
       </div>
     </div>
+
+    <!-- What of that share has actually been billed. A running total with no
+         bill behind it leaves the doctor guessing when, and how much, to pay. -->
+    <RouterLink
+      v-if="latestOutstanding"
+      to="/invoices"
+      class="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 transition-colors hover:bg-amber-100"
+    >
+      <p class="text-sm font-medium text-amber-800">
+        {{
+          t('payments.invoiceDue', {
+            period: dueLabel,
+            amount: money(latestOutstanding.commission),
+          })
+        }}
+      </p>
+      <span class="text-sm font-medium text-amber-900 underline">
+        {{
+          outstandingTotal > latestOutstanding.commission
+            ? t('payments.invoiceDueMore', { amount: money(outstandingTotal) })
+            : t('payments.invoiceView')
+        }}
+      </span>
+    </RouterLink>
 
     <!-- The platform's share, shown rather than deducted quietly. A doctor who
          cannot see what was taken is a doctor who will ask, and be right to. -->
