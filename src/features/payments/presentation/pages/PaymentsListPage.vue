@@ -81,6 +81,11 @@ const chargedCount = computed(
   () => items.value.filter((p) => p.commissionAmount != null).length,
 )
 
+/** The fees no share was taken from, because the bookings predate the
+ *  arrangement. Without this figure the card asks the reader to accept that
+ *  12% of 4,000 is 60, and the reason is a sentence they have to go and find. */
+const unchargedFees = computed(() => feesTotal.value - summary.value.commissionable)
+
 /** What the period earned before the platform's share came out of it. The
  *  share was taken off `net` by the database, so adding it back is the same
  *  subtraction read the other way -- not a second opinion about the money. */
@@ -287,8 +292,15 @@ function exportCsv() {
             <dd class="font-medium text-slate-700">{{ money(summary.commission) }}</dd>
           </div>
         </dl>
-        <p v-if="summary.unrated > 0" class="mt-2 text-xs text-slate-400">
-          {{ t('payments.unratedNote', { count: summary.unrated }) }}
+        <!-- Amber, not grey. This line is the difference between a share that
+             looks miscalculated and one that adds up, so it is not footnoted. -->
+        <p v-if="summary.unrated > 0" class="mt-2 text-xs font-medium text-amber-700">
+          {{
+            t('payments.unratedNote', {
+              count: summary.unrated,
+              amount: money(unchargedFees),
+            })
+          }}
         </p>
       </div>
     </div>

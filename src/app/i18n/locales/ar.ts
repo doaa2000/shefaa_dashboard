@@ -189,7 +189,7 @@ export const ar: Messages = {
     allCollected: 'كل مواعيد الفترة محصَّلة.',
     collectedOff: 'و{amount} محصَّلة على مواعيد ملغاة أو لم يحضرها المريض.',
     yoursAfter: 'لك {amount} بعد عمولة {commission}',
-    unratedNote: '{count} حجوزات سابقة لنظام العمولة ولا تُحتسب عليها.',
+    unratedNote: '{count} كشف بقيمة {amount} سابقة لنظام العمولة، فلم تُحتسب عليها.',
     invoiceDue: 'فاتورة {period}: {amount} — غير مدفوعة',
     invoiceDueMore: 'الإجمالي غير المدفوع {amount}',
     invoiceView: 'عرض الفواتير',

@@ -187,7 +187,7 @@ export const en = {
     allCollected: 'Everything in this period is collected.',
     collectedOff: 'Plus {amount} taken for cancelled or unattended appointments.',
     yoursAfter: '{amount} yours, after {commission}',
-    unratedNote: '{count} bookings predate the platform share and carry none.',
+    unratedNote: '{count} consultations worth {amount} predate the arrangement and carry no share.',
     invoiceDue: '{period} invoice: {amount} — unpaid',
     invoiceDueMore: '{amount} unpaid in total',
     invoiceView: 'View invoices',
