@@ -54,14 +54,24 @@ const methodOptions = computed(() => [
 
 const money = (n: number) => formatMoney(n)
 
-/** Cash is in the drawer and instapay is in the bank, so the two are still
- *  counted apart -- but as one line under the figure they split, not as a
- *  second block of cards restating it. */
+/**
+ * Cash is in the drawer and instapay is in the bank, so when a clinic takes
+ * both they are split under the figure they add up to.
+ *
+ * A clinic that takes only cash is told nothing by "cash 1,800" under 1,800,
+ * by a column saying "cash" on every row, or by a filter with one choice in
+ * it. All three hide themselves until a second method actually appears, and
+ * come back on their own the day one does.
+ */
+const splitByMethod = computed(() => byMethod.value.length > 1)
+
 const methodLine = computed(() =>
-  byMethod.value
-    .filter((m) => m.collected > 0)
-    .map((m) => `${labelFor('method', m.method)} ${money(m.collected)}`)
-    .join(' · '),
+  splitByMethod.value
+    ? byMethod.value
+        .filter((m) => m.collected > 0)
+        .map((m) => `${labelFor('method', m.method)} ${money(m.collected)}`)
+        .join(' · ')
+    : '',
 )
 
 const unpaidCount = computed(() => summary.value.totalCount - summary.value.paidCount)
@@ -248,7 +258,7 @@ function exportCsv() {
       <div class="w-44">
         <BaseSelect v-model="statusFilter" :options="statusOptions" />
       </div>
-      <div class="w-44">
+      <div v-if="splitByMethod" class="w-44">
         <BaseSelect v-model="methodFilter" :options="methodOptions" />
       </div>
       <p class="text-sm text-slate-500">
@@ -279,7 +289,9 @@ function exportCsv() {
       </template>
       <template #cell:status="{ row }">
         <BaseBadge :tone="statusTone(row.status)">{{ statusLabel(row.status) }}</BaseBadge>
-        <p class="mt-1 text-xs text-slate-500">{{ labelFor('method', row.method) }}</p>
+        <p v-if="splitByMethod" class="mt-1 text-xs text-slate-500">
+          {{ labelFor('method', row.method) }}
+        </p>
         <p v-if="row.paidAt" class="text-xs text-slate-400">
           {{ formatDateTime(row.paidAt) }}
         </p>
