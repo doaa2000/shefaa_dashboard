@@ -12,7 +12,6 @@ import { formatDate, formatDateTime } from '@/shared/utils/datetime'
 import { formatMoney, labelFor } from '@/shared/utils/formatters'
 import { downloadCsv, toCsv } from '@/shared/utils/csv'
 import type { Payment, SettableStatus } from '../../domain/payment.models'
-import MethodBreakdown from '../components/MethodBreakdown.vue'
 import { BaseBadge, BaseButton, BaseSelect, BaseTable, type Column } from '@/shared/ui'
 
 const store = usePaymentStore()
@@ -23,13 +22,14 @@ const { latestOutstanding, outstandingTotal } = storeToRefs(invoices)
 const { range, preset, visibleItems, summary, byMethod, loading, savingId, error, statusFilter, methodFilter } =
   storeToRefs(store)
 
+// Five columns, not seven. The payment method belongs under the status it
+// describes, and the platform's share under the fee it is a share of; as
+// columns of their own they were two more things to read across.
 const columns = computed<Column[]>(() => [
   { key: 'bookedDate', label: t('payments.columns.appointment') },
   { key: 'patientName', label: t('payments.columns.patient') },
-  { key: 'method', label: t('payments.columns.method') },
   { key: 'status', label: t('payments.columns.status'), align: 'center' },
   { key: 'amount', label: t('payments.columns.amount'), align: 'right' },
-  { key: 'commissionAmount', label: t('payments.commissionColumn'), align: 'right' },
   { key: 'actions', label: '', align: 'right' },
 ])
 
@@ -53,6 +53,18 @@ const methodOptions = computed(() => [
 ])
 
 const money = (n: number) => formatMoney(n)
+
+/** Cash is in the drawer and instapay is in the bank, so the two are still
+ *  counted apart -- but as one line under the figure they split, not as a
+ *  second block of cards restating it. */
+const methodLine = computed(() =>
+  byMethod.value
+    .filter((m) => m.collected > 0)
+    .map((m) => `${labelFor('method', m.method)} ${money(m.collected)}`)
+    .join(' · '),
+)
+
+const unpaidCount = computed(() => summary.value.totalCount - summary.value.paidCount)
 
 const statusTone = (s: string | null) =>
   s === 'paid' ? 'success' : s === 'refunded' ? 'neutral' : s === 'failed' ? 'danger' : 'warning'
@@ -175,25 +187,36 @@ function exportCsv() {
       </div>
     </div>
 
-    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <!-- Three questions, in the order a doctor asks them: what came in, what
+         has not, and what is mine. Every other figure that used to sit up here
+         was one of these three said a second way. -->
+    <div class="grid gap-4 sm:grid-cols-3">
       <div class="rounded-2xl border border-surface-border bg-white p-5 shadow-card">
         <p class="text-sm font-medium text-slate-500">{{ t('payments.collected') }}</p>
         <p class="mt-2 text-2xl font-semibold text-emerald-600">{{ money(summary.collected) }}</p>
+        <p v-if="methodLine" class="mt-1 text-xs text-slate-400">{{ methodLine }}</p>
+        <p v-if="summary.refunded > 0" class="mt-1 text-xs text-slate-400">
+          {{ t('payments.refundedLine', { amount: money(summary.refunded) }) }}
+        </p>
       </div>
+
       <div class="rounded-2xl border border-surface-border bg-white p-5 shadow-card">
         <p class="text-sm font-medium text-slate-500">{{ t('payments.outstanding') }}</p>
         <p class="mt-2 text-2xl font-semibold text-amber-600">{{ money(summary.outstanding) }}</p>
-        <p class="mt-1 text-xs text-slate-400">{{ t('payments.outstandingNote') }}</p>
-      </div>
-      <div class="rounded-2xl border border-surface-border bg-white p-5 shadow-card">
-        <p class="text-sm font-medium text-slate-500">{{ t('payments.paidAppointments') }}</p>
-        <p class="mt-2 text-2xl font-semibold text-slate-900">
-          {{ summary.paidCount }} / {{ summary.totalCount }}
+        <p class="mt-1 text-xs text-slate-400">
+          {{ t('payments.outstandingCount', { count: unpaidCount, total: summary.totalCount }) }}
         </p>
       </div>
+
       <div class="rounded-2xl border border-surface-border bg-white p-5 shadow-card">
-        <p class="text-sm font-medium text-slate-500">{{ t('payments.refunded') }}</p>
-        <p class="mt-2 text-2xl font-semibold text-slate-900">{{ money(summary.refunded) }}</p>
+        <p class="text-sm font-medium text-slate-500">{{ t('payments.net') }}</p>
+        <p class="mt-2 text-2xl font-semibold text-primary-900">{{ money(summary.net) }}</p>
+        <p class="mt-1 text-xs text-slate-400">
+          {{ t('payments.netNote', { amount: money(summary.commission) }) }}
+        </p>
+        <p v-if="summary.unrated > 0" class="mt-1 text-xs text-slate-400">
+          {{ t('payments.unratedNote', { count: summary.unrated }) }}
+        </p>
       </div>
     </div>
 
@@ -220,25 +243,6 @@ function exportCsv() {
         }}
       </span>
     </RouterLink>
-
-    <!-- The platform's share, shown rather than deducted quietly. A doctor who
-         cannot see what was taken is a doctor who will ask, and be right to. -->
-    <div class="grid gap-4 sm:grid-cols-2">
-      <div class="rounded-2xl border border-surface-border bg-white p-5 shadow-card">
-        <p class="text-sm font-medium text-slate-500">{{ t('payments.commission') }}</p>
-        <p class="mt-2 text-2xl font-semibold text-slate-900">{{ money(summary.commission) }}</p>
-        <p class="mt-1 text-xs text-slate-400">{{ t('payments.commissionNote') }}</p>
-        <p v-if="summary.unrated > 0" class="mt-1 text-xs text-slate-400">
-          {{ t('payments.unratedNote', { count: summary.unrated }) }}
-        </p>
-      </div>
-      <div class="rounded-2xl border border-surface-border bg-white p-5 shadow-card">
-        <p class="text-sm font-medium text-slate-500">{{ t('payments.net') }}</p>
-        <p class="mt-2 text-2xl font-semibold text-primary-900">{{ money(summary.net) }}</p>
-      </div>
-    </div>
-
-    <MethodBreakdown :rows="byMethod" />
 
     <div class="flex flex-wrap items-center gap-2">
       <div class="w-44">
@@ -273,23 +277,23 @@ function exportCsv() {
           </p>
         </div>
       </template>
-      <template #cell:method="{ row }">{{ labelFor('method', row.method) }}</template>
       <template #cell:status="{ row }">
         <BaseBadge :tone="statusTone(row.status)">{{ statusLabel(row.status) }}</BaseBadge>
-        <p v-if="row.paidAt" class="mt-1 text-xs text-slate-400">
+        <p class="mt-1 text-xs text-slate-500">{{ labelFor('method', row.method) }}</p>
+        <p v-if="row.paidAt" class="text-xs text-slate-400">
           {{ formatDateTime(row.paidAt) }}
         </p>
       </template>
       <template #cell:amount="{ row }">
-        <span class="font-medium text-slate-800">{{ money(row.amount) }}</span>
-      </template>
-      <template #cell:commissionAmount="{ row }">
-        <span v-if="row.commissionAmount != null" class="text-slate-500">
-          {{ money(row.commissionAmount) }}
-        </span>
-        <span v-else class="text-slate-300">—</span>
+        <p class="font-medium text-slate-800">{{ money(row.amount) }}</p>
+        <p v-if="row.commissionAmount != null" class="text-xs text-slate-400">
+          {{ t('payments.commissionLine', { amount: money(row.commissionAmount) }) }}
+        </p>
       </template>
       <template #cell:actions="{ row }">
+        <!-- One button on the row that needs one. Refunding is only a thing
+             you do to money you took, so it waits until the fee is collected
+             rather than sitting on every row as a third choice. -->
         <div class="flex justify-end gap-2">
           <BaseButton
             v-if="row.status !== 'paid'"
@@ -299,24 +303,24 @@ function exportCsv() {
           >
             {{ t('payments.markCollected') }}
           </BaseButton>
-          <BaseButton
-            v-else
-            size="sm"
-            variant="ghost"
-            :loading="savingId === row.id"
-            @click="mark(row, 'pending')"
-          >
-            {{ t('payments.undo') }}
-          </BaseButton>
-          <BaseButton
-            v-if="row.status !== 'refunded'"
-            size="sm"
-            variant="outline"
-            :loading="savingId === row.id"
-            @click="mark(row, 'refunded')"
-          >
-            {{ t('payments.refund') }}
-          </BaseButton>
+          <template v-else>
+            <BaseButton
+              size="sm"
+              variant="ghost"
+              :loading="savingId === row.id"
+              @click="mark(row, 'pending')"
+            >
+              {{ t('payments.undo') }}
+            </BaseButton>
+            <BaseButton
+              size="sm"
+              variant="outline"
+              :loading="savingId === row.id"
+              @click="mark(row, 'refunded')"
+            >
+              {{ t('payments.refund') }}
+            </BaseButton>
+          </template>
         </div>
       </template>
     </BaseTable>
