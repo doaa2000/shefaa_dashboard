@@ -19,7 +19,7 @@ const invoices = useInvoiceStore()
 const toast = useToast()
 const { t } = useI18n()
 const { latestOutstanding, outstandingTotal } = storeToRefs(invoices)
-const { range, preset, visibleItems, summary, byMethod, loading, savingId, error, statusFilter, methodFilter } =
+const { range, preset, items, visibleItems, summary, byMethod, loading, savingId, error, statusFilter, methodFilter } =
   storeToRefs(store)
 
 // Five columns, not seven. The payment method belongs under the status it
@@ -75,6 +75,38 @@ const methodLine = computed(() =>
 )
 
 const unpaidCount = computed(() => summary.value.totalCount - summary.value.paidCount)
+
+/** What the period earned before the platform's share came out of it. The
+ *  share was taken off `net` by the database, so adding it back is the same
+ *  subtraction read the other way -- not a second opinion about the money. */
+const feesTotal = computed(() => summary.value.net + summary.value.commission)
+
+/**
+ * The rate, when there is one rate to name.
+ *
+ * Each booking freezes the rate it was made under, so a period that spans a
+ * change carries two. One percentage over both would be a figure that matches
+ * no booking on the page, so in that case the label names the share without
+ * claiming a rate.
+ */
+const commissionRate = computed<number | null>(() => {
+  const rates = new Set(
+    items.value
+      .filter((p) => p.commissionAmount != null && p.commissionRate != null)
+      .map((p) => p.commissionRate as number),
+  )
+  return rates.size === 1 ? [...rates][0] : null
+})
+
+const commissionLabel = computed(() => {
+  const rate = commissionRate.value
+  if (rate == null) return t('payments.lessCommission')
+  const percent = new Intl.NumberFormat(intlLocale(), {
+    style: 'percent',
+    maximumFractionDigits: 2,
+  }).format(rate)
+  return t('payments.lessCommissionAt', { rate: percent })
+})
 
 const statusTone = (s: string | null) =>
   s === 'paid' ? 'success' : s === 'refunded' ? 'neutral' : s === 'failed' ? 'danger' : 'warning'
@@ -218,13 +250,25 @@ function exportCsv() {
         </p>
       </div>
 
+      <!-- The subtraction, not just its answer: what the period earned, what
+           was taken and at what rate, and what is left. A doctor should never
+           have to work out which of the three he is looking at. -->
       <div class="rounded-2xl border border-surface-border bg-white p-5 shadow-card">
         <p class="text-sm font-medium text-slate-500">{{ t('payments.net') }}</p>
         <p class="mt-2 text-2xl font-semibold text-primary-900">{{ money(summary.net) }}</p>
-        <p class="mt-1 text-xs text-slate-400">
-          {{ t('payments.netNote', { amount: money(summary.commission) }) }}
-        </p>
-        <p v-if="summary.unrated > 0" class="mt-1 text-xs text-slate-400">
+        <dl class="mt-3 space-y-1 border-t border-surface-border pt-2 text-xs">
+          <div class="flex items-center justify-between gap-2">
+            <dt class="text-slate-500">{{ t('payments.feesTotal') }}</dt>
+            <dd class="font-medium text-slate-700">{{ money(feesTotal) }}</dd>
+          </div>
+          <!-- "less" carries the sign, so no minus glyph has to survive being
+               mirrored into an Arabic line. -->
+          <div class="flex items-center justify-between gap-2">
+            <dt class="text-slate-500">{{ commissionLabel }}</dt>
+            <dd class="font-medium text-slate-700">{{ money(summary.commission) }}</dd>
+          </div>
+        </dl>
+        <p v-if="summary.unrated > 0" class="mt-2 text-xs text-slate-400">
           {{ t('payments.unratedNote', { count: summary.unrated }) }}
         </p>
       </div>
@@ -296,10 +340,18 @@ function exportCsv() {
           {{ formatDateTime(row.paidAt) }}
         </p>
       </template>
+      <!-- The fee the patient pays, and underneath it what reaches the doctor
+           once the share is out. The rate is named once, on the card above:
+           repeating it on every row says the same thing twelve times. -->
       <template #cell:amount="{ row }">
         <p class="font-medium text-slate-800">{{ money(row.amount) }}</p>
         <p v-if="row.commissionAmount != null" class="text-xs text-slate-400">
-          {{ t('payments.commissionLine', { amount: money(row.commissionAmount) }) }}
+          {{
+            t('payments.yoursAfter', {
+              amount: money(row.amount - row.commissionAmount),
+              commission: money(row.commissionAmount),
+            })
+          }}
         </p>
       </template>
       <template #cell:actions="{ row }">
