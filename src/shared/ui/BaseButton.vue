@@ -19,8 +19,14 @@ const props = withDefaults(
 
 defineEmits<{ click: [event: MouseEvent] }>()
 
+// 400 is the brand colour itself, which is what CustomButton fills with in the
+// app -- white on #67b2d8, exactly. A darker shade read better and looked like
+// a different product, and looking like one product is the point.
+//
+// The ring stays dark: it is the keyboard focus outline, and an outline the
+// same lightness as the button it surrounds is not an outline.
 const variants: Record<Variant, string> = {
-  primary: 'bg-primary-600 text-white hover:bg-primary-700 focus-visible:ring-primary-500',
+  primary: 'bg-primary-400 text-white hover:bg-primary-500 focus-visible:ring-primary-700',
   secondary: 'bg-primary-50 text-primary-700 hover:bg-primary-100 focus-visible:ring-primary-400',
   ghost: 'bg-transparent text-slate-600 hover:bg-slate-100 focus-visible:ring-slate-300',
   danger: 'bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500',

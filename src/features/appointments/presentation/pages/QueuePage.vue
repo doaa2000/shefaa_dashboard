@@ -105,7 +105,7 @@ async function settle(entry: QueueEntry, status: 'completed' | 'no_show') {
         <div class="mt-2 flex flex-wrap items-center justify-between gap-4">
           <div class="flex items-center gap-4">
             <span
-              class="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-600 text-2xl font-bold text-white"
+              class="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-400 text-2xl font-bold text-white"
             >
               {{ queue.current.position }}
             </span>

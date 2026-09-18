@@ -54,7 +54,7 @@ onMounted(() => store.fetch())
           >
             <span
               class="mt-1.5 h-2 w-2 shrink-0 rounded-full"
-              :class="n.isRead ? 'bg-transparent' : 'bg-primary-500'"
+              :class="n.isRead ? 'bg-transparent' : 'bg-primary-400'"
             />
             <span class="min-w-0">
               <span class="block text-sm font-medium text-slate-800">{{ n.title }}</span>
