@@ -88,6 +88,25 @@ export class SupabaseScheduleRepository implements IScheduleRepository {
     }
   }
 
+  async setBookingMode(
+    doctorId: number,
+    slotMinutes: number | null,
+  ): Promise<Result<ScheduleEntry[], AppError>> {
+    try {
+      const { data, error } = await this.client
+        .from('doctor_schedule')
+        .update({ slot_minutes: slotMinutes })
+        .eq('doctor_id', doctorId)
+        .select('*')
+        .order('weekday', { ascending: true })
+        .order('start_time', { ascending: true })
+      if (error) return err(normalizeError(error))
+      return ok(data.map(toEntry))
+    } catch (e) {
+      return err(normalizeError(e))
+    }
+  }
+
   async update(id: number, input: UpdateScheduleInput): Promise<Result<ScheduleEntry, AppError>> {
     try {
       const { data, error } = await this.client

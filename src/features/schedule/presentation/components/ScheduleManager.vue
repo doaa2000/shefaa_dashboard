@@ -8,13 +8,11 @@ import { useScheduleStore } from '../../store/schedule.store'
 import { scheduleSchema, type ScheduleFormValues } from '../../domain/schedule.schema'
 import {
   sessionOptions,
-  slotOptions,
   weekdayOptions,
   WHOLE_SESSION,
   minutesPerPatient,
   slotLabel,
   timeLabel,
-  toSlotMinutes,
   windowCount,
   type ScheduleEntry,
 } from '../../domain/schedule.models'
@@ -37,7 +35,6 @@ const { t } = useI18n()
 
 const weekdays = computed(() => weekdayOptions())
 const sessions = computed(() => sessionOptions())
-const slots = computed(() => slotOptions())
 const { byWeekday, items, loading, saving, totalWeeklyCapacity } = storeToRefs(store)
 
 const DEFAULTS: Partial<ScheduleFormValues> = {
@@ -62,7 +59,6 @@ const [session] = defineField('session')
 const [startTime] = defineField('startTime')
 const [endTime] = defineField('endTime')
 const [capacity, capacityAttrs] = defineField('capacity')
-const [slotMinutes] = defineField('slotMinutes')
 
 // Moving the start past the end would leave a session that ends before it
 // begins. The picker refuses to set one, and this carries the end along.
@@ -84,22 +80,15 @@ function nextQuarter(from: string): string {
 }
 
 /**
- * The one choice on this form that changes how a clinic runs, and it was a
- * line in a select among four lengths -- so the difference between "come at
- * ten past nine" and "come during the morning and wait your turn" was made by
- * picking an item off a list that explained neither.
+ * How the clinic books is not asked here.
  *
- * Two cards now, each saying what it does to the patient.
+ * It was, once per row, which made it a decision the doctor re-made every time
+ * they added a day and could answer differently each time without noticing --
+ * and left a patient to work out which arrangement applied before picking a
+ * day. It is one answer about the clinic now, given above this form, and a new
+ * day simply joins it.
  */
-const splitsIntoSlots = computed({
-  get: () => slotMinutes.value !== WHOLE_SESSION,
-  set: (on: boolean) => {
-    slotMinutes.value = on ? '20' : WHOLE_SESSION
-  },
-})
-
-/** The lengths, without the "whole session" entry the cards now carry. */
-const lengths = computed(() => slots.value.filter((s) => s.value !== WHOLE_SESSION))
+const inheritedSlotMinutes = computed(() => store.bookingMode)
 
 /**
  * What the doctor is about to create, in the same words the patient will read
@@ -111,7 +100,7 @@ const preview = computed(() => {
     startTime: String(startTime.value ?? ''),
     endTime: String(endTime.value ?? ''),
     capacity: Number(capacity.value ?? 0),
-    slotMinutes: toSlotMinutes(String(slotMinutes.value ?? WHOLE_SESSION)),
+    slotMinutes: inheritedSlotMinutes.value,
   } as ScheduleEntry
 
   if (!draft.startTime || !draft.endTime || draft.endTime <= draft.startTime) return null
@@ -134,7 +123,8 @@ const onSubmit = handleSubmit(async (values) => {
   // the database holds null, which is what "one window" is.
   const ok = await store.create({
     ...values,
-    slotMinutes: toSlotMinutes(values.slotMinutes),
+    // Whatever the clinic runs on, not whatever this form happens to hold.
+    slotMinutes: inheritedSlotMinutes.value,
   })
   if (ok) {
     toast.success(t('settings.sessionAdded'))
@@ -192,42 +182,7 @@ function pace(entry: ScheduleEntry): string {
         </FormField>
       </div>
 
-      <!-- The decision, as two things a clinic does rather than two values of
-           a field. Picking one of these is picking how the waiting room
-           behaves, and it used to be an item in a dropdown. -->
-      <div>
-        <p class="text-sm font-medium text-slate-700">{{ t('schedule.howTitle') }}</p>
-        <div class="mt-2 grid gap-3 sm:grid-cols-2">
-          <button
-            type="button"
-            class="rounded-2xl border p-4 text-start transition-colors"
-            :class="!splitsIntoSlots
-              ? 'border-primary-600 bg-primary-50'
-              : 'border-surface-border bg-white hover:bg-primary-50'"
-            @click="splitsIntoSlots = false"
-          >
-            <p class="text-sm font-semibold text-slate-800">{{ t('schedule.wholeTitle') }}</p>
-            <p class="mt-1 text-xs leading-relaxed text-slate-600">{{ t('schedule.wholeBody') }}</p>
-          </button>
-
-          <button
-            type="button"
-            class="rounded-2xl border p-4 text-start transition-colors"
-            :class="splitsIntoSlots
-              ? 'border-primary-600 bg-primary-50'
-              : 'border-surface-border bg-white hover:bg-primary-50'"
-            @click="splitsIntoSlots = true"
-          >
-            <p class="text-sm font-semibold text-slate-800">{{ t('schedule.slotsTitle') }}</p>
-            <p class="mt-1 text-xs leading-relaxed text-slate-600">{{ t('schedule.slotsBody') }}</p>
-          </button>
-        </div>
-      </div>
-
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <FormField v-if="splitsIntoSlots" :label="t('schedule.lengthField')">
-          <BaseSelect v-model="slotMinutes" :options="lengths" :placeholder="undefined" />
-        </FormField>
         <FormField
           :label="t('settings.patients')"
           :error="errors.capacity"

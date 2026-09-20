@@ -28,6 +28,13 @@ export class ScheduleService {
     return this.repo.remove(id)
   }
 
+  setBookingMode(
+    doctorId: number,
+    slotMinutes: number | null,
+  ): Promise<Result<ScheduleEntry[], AppError>> {
+    return this.repo.setBookingMode(doctorId, slotMinutes)
+  }
+
   listClosures(doctorId: number): Promise<Result<ScheduleClosure[], AppError>> {
     return this.repo.listClosures(doctorId)
   }

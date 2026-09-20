@@ -35,6 +35,47 @@ export const useScheduleStore = defineStore('schedules', () => {
     items.value.filter((e) => e.isActive).reduce((sum, e) => sum + e.capacity, 0),
   )
 
+  /**
+   * How this clinic books, read back from the week.
+   *
+   * It is held on every row rather than in a place of its own, so this is the
+   * value they agree on. An empty week has no answer yet and reads as the
+   * whole window, which is what a new row would be anyway.
+   *
+   * A week that disagrees with itself can only come from outside this page --
+   * it is written across all rows at once here -- and taking the first row's
+   * answer is the one that matches what the doctor would see at the top of
+   * the list.
+   */
+  const bookingMode = computed<number | null>(() =>
+    items.value.length ? items.value[0].slotMinutes : null,
+  )
+
+  /** True while the week does not agree, which this page then offers to settle. */
+  const bookingModeMixed = computed(
+    () => new Set(items.value.map((e) => e.slotMinutes)).size > 1,
+  )
+
+  /**
+   * Writes one answer across the whole week.
+   *
+   * Every row, not the active ones: a paused day resumed next month would
+   * otherwise come back running on the arrangement the clinic has left behind.
+   */
+  async function setBookingMode(slotMinutes: number | null): Promise<boolean> {
+    if (!auth.doctorId) return false
+    saving.value = true
+    error.value = null
+    const result = await service.setBookingMode(auth.doctorId, slotMinutes)
+    saving.value = false
+    if (isOk(result)) {
+      items.value = result.value
+      return true
+    }
+    error.value = result.error
+    return false
+  }
+
   async function fetchList(): Promise<void> {
     if (!auth.doctorId) return
     loading.value = true
@@ -132,6 +173,9 @@ export const useScheduleStore = defineStore('schedules', () => {
   }
 
   return {
+    bookingMode,
+    bookingModeMixed,
+    setBookingMode,
     closures,
     fetchClosures,
     addClosure,
