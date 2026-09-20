@@ -48,8 +48,11 @@ self.addEventListener('push', (event) => {
       tellOpenTabs,
       self.registration.showNotification(title, {
         body: notification.body ?? data.body ?? '',
-        icon: '/favicon.ico',
-        badge: '/favicon.ico',
+        // The file that is actually there. This pointed at favicon.ico, which
+        // this app has never shipped, so every notification fell back to the
+        // browser's own generic icon.
+        icon: '/favicon.png',
+        badge: '/favicon.png',
         // Keyed on the booking so a second message about the same appointment
         // replaces the first rather than stacking under it.
         tag: data.booking_id ? `booking-${data.booking_id}` : undefined,
@@ -62,11 +65,13 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
 
-  // Whichever screen the message is about. Falls back to the dashboard, which
-  // is never the wrong place to land.
-  const target = event.notification.data?.kind === 'booking_created_doctor'
-    ? '/appointments'
-    : '/'
+  // Whichever screen the message is about. Every booking message -- a new one
+  // and a cancelled one alike -- is answered by the appointments list; this
+  // named only the first, so tapping a cancellation landed on the dashboard
+  // and left the doctor to find the appointment themselves. Anything else
+  // falls back to the dashboard, which is never the wrong place to land.
+  const kind = event.notification.data?.kind ?? ''
+  const target = kind.startsWith('booking_') ? '/appointments' : '/'
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {

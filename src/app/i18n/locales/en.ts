@@ -270,6 +270,7 @@ export const en = {
     unread: 'Unread: {count}',
     markAllRead: 'Mark all as read',
     viewAll: 'View all',
+    loadMore: 'Show more',
     emptyTitle: 'No notifications',
     emptyBody: 'Every new booking and cancellation will appear here.',
   },

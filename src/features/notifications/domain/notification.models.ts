@@ -24,10 +24,14 @@ export interface AppNotification {
   isRead: boolean
 }
 
-export interface NotificationListResult {
-  items: AppNotification[]
-  unreadCount: number
-}
+/**
+ * How many messages one read brings back.
+ *
+ * Kept in the domain because the list query and the screen that asks for the
+ * next page both need it, and a page size the two disagree about is a list
+ * that either repeats rows or skips them.
+ */
+export const NOTIFICATIONS_PAGE_SIZE = 50
 
 /** Which screen answers "what is this about". */
 export function routeFor(kind: string): string {

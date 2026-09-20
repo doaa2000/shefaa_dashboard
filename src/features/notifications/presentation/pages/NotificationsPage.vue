@@ -11,7 +11,7 @@ import { BaseButton, BaseCard, BaseEmptyState, BaseSpinner } from '@/shared/ui'
 const store = useNotificationStore()
 const router = useRouter()
 const { t } = useI18n()
-const { items, loading, unreadCount } = storeToRefs(store)
+const { items, loading, loadingMore, hasMore, unreadCount } = storeToRefs(store)
 
 /** Reading one is opening it. Marking read by itself is a chore nobody wants. */
 async function open(notification: AppNotification) {
@@ -46,10 +46,17 @@ onMounted(() => store.fetch())
       />
       <ul v-else class="divide-y divide-surface-border">
         <li v-for="n in items" :key="n.id">
+          <!-- One flat tint for everything unread, and a hover that is darker
+               than it rather than lighter. The unread wash used to be
+               `primary-50/40` against a `primary-50` hover, so passing the
+               mouse over a message already read made it look newer than one
+               that had never been opened. `primary-100` rather than 50
+               because 50 is within a shade of the page behind the card: a
+               tint nobody can see is not a state. -->
           <button
             type="button"
-            class="flex w-full items-start gap-3 px-5 py-4 text-start transition-colors hover:bg-primary-50"
-            :class="n.isRead ? '' : 'bg-primary-50/40'"
+            class="flex w-full items-start gap-3 px-5 py-4 text-start transition-colors"
+            :class="n.isRead ? 'hover:bg-surface-muted' : 'bg-primary-100 hover:bg-primary-200'"
             @click="open(n)"
           >
             <span
@@ -64,6 +71,14 @@ onMounted(() => store.fetch())
           </button>
         </li>
       </ul>
+
+      <!-- The list is read one page at a time. Without this the history simply
+           stopped at the page size, with nothing on screen to say so. -->
+      <div v-if="hasMore" class="border-t border-surface-border p-3 text-center">
+        <BaseButton variant="outline" :loading="loadingMore" @click="store.loadMore()">
+          {{ t('notifications.loadMore') }}
+        </BaseButton>
+      </div>
     </BaseCard>
   </div>
 </template>

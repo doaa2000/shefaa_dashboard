@@ -1,6 +1,6 @@
 import type { Result } from '@/core/result'
 import type { AppError } from '@/core/errors'
-import type { NotificationListResult } from './notification.models'
+import type { AppNotification } from './notification.models'
 
 /**
  * The doctor's own notifications.
@@ -11,7 +11,21 @@ import type { NotificationListResult } from './notification.models'
  * it twice".
  */
 export interface INotificationRepository {
-  list(limit?: number): Promise<Result<NotificationListResult, AppError>>
+  /** One page of history, newest first. `offset` is how many are already held. */
+  list(offset?: number): Promise<Result<AppNotification[], AppError>>
+
+  /**
+   * The bell's number, counted in the database over every message rather than
+   * over the page of them a screen happens to hold.
+   */
+  countUnread(): Promise<Result<number, AppError>>
+
   markAsRead(id: number): Promise<Result<void, AppError>>
   markAllAsRead(): Promise<Result<void, AppError>>
+
+  /**
+   * Calls back whenever a message for this account is written or delivered.
+   * Returns the function that stops listening.
+   */
+  watch(userId: string, onChange: () => void): () => void
 }

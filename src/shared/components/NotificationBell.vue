@@ -77,10 +77,12 @@ function goToAll() {
           {{ t('notifications.emptyTitle') }}
         </li>
         <li v-for="n in items.slice(0, 6)" :key="n.id">
+          <!-- The same two states as the full list, drawn the same way: one
+               flat tint for unread, and a hover a step darker than it. -->
           <button
             type="button"
-            class="w-full px-4 py-3 text-start hover:bg-primary-100"
-            :class="n.isRead ? '' : 'bg-primary-50/40'"
+            class="w-full px-4 py-3 text-start transition-colors"
+            :class="n.isRead ? 'hover:bg-surface-muted' : 'bg-primary-100 hover:bg-primary-200'"
             @click="go(n)"
           >
             <span class="block text-sm font-medium text-slate-800">{{ n.title }}</span>

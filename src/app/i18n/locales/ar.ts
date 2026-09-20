@@ -272,6 +272,7 @@ export const ar: Messages = {
     unread: 'غير المقروء: {count}',
     markAllRead: 'تعليم الكل كمقروء',
     viewAll: 'عرض الكل',
+    loadMore: 'عرض المزيد',
     emptyTitle: 'لا توجد إشعارات',
     emptyBody: 'سيظهر هنا كل حجز جديد وكل إلغاء.',
   },
