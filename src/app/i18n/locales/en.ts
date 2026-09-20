@@ -92,6 +92,13 @@ export const en = {
     subtitle: 'Your bookings',
     allStatuses: 'All statuses',
     emptyTitle: 'No appointments',
+    range: {
+      all: 'All appointments',
+      today: 'Today',
+      week: 'Next 7 days',
+      custom: 'Custom range',
+      clear: 'Clear dates',
+    },
     columns: {
       date: 'Date',
       time: 'Time',

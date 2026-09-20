@@ -19,6 +19,61 @@ const { items, total, loading, saving, error } = storeToRefs(store)
 
 const pagination = usePagination({ pageSize: 10 })
 const statusFilter = ref<string>('')
+
+/** YYYY-MM-DD in the clinic's own day. toISOString hands back UTC, which after
+ *  ten at night in Cairo is already tomorrow. */
+function isoDay(date: Date): string {
+  const d = new Date(date)
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset())
+  return d.toISOString().slice(0, 10)
+}
+
+type RangePreset = 'all' | 'today' | 'week' | 'custom'
+
+const preset = ref<RangePreset>('all')
+const fromDate = ref('')
+const toDate = ref('')
+
+const presets = computed<{ label: string; value: RangePreset }[]>(() => [
+  { label: t('appointments.range.all'), value: 'all' },
+  { label: t('appointments.range.today'), value: 'today' },
+  { label: t('appointments.range.week'), value: 'week' },
+  { label: t('appointments.range.custom'), value: 'custom' },
+])
+
+/**
+ * The presets look forward, not back. A doctor opening this page is asking
+ * who is coming, and "last 7 days" answers a question they did not ask -- the
+ * payments page is where the past lives.
+ */
+function applyPreset(next: RangePreset) {
+  preset.value = next
+  const today = new Date()
+
+  if (next === 'all') {
+    fromDate.value = ''
+    toDate.value = ''
+  } else if (next === 'today') {
+    fromDate.value = isoDay(today)
+    toDate.value = isoDay(today)
+  } else if (next === 'week') {
+    const end = new Date(today)
+    end.setDate(end.getDate() + 6)
+    fromDate.value = isoDay(today)
+    toDate.value = isoDay(end)
+  }
+}
+
+/** Typing a date by hand is a custom range, whatever the preset said before. */
+function setFrom(value: string) {
+  fromDate.value = value
+  preset.value = 'custom'
+}
+
+function setTo(value: string) {
+  toDate.value = value
+  preset.value = 'custom'
+}
 const modalOpen = ref(false)
 const editing = ref<Appointment | null>(null)
 
@@ -35,6 +90,8 @@ const statuses = computed(() => statusOptions())
 async function load() {
   await store.fetchList({
     status: statusFilter.value || undefined,
+    fromDate: fromDate.value || undefined,
+    toDate: toDate.value || undefined,
     from: pagination.range.value.from,
     to: pagination.range.value.to,
   })
@@ -42,7 +99,18 @@ async function load() {
 }
 
 onMounted(load)
-watch([() => pagination.page.value, statusFilter], load)
+watch([() => pagination.page.value], load)
+
+// Back to the first page whenever the filter changes. Staying on page three of
+// a list that just became four rows long shows an empty table, which reads as
+// "no appointments" rather than "you are past the end".
+watch([statusFilter, fromDate, toDate], () => {
+  if (pagination.page.value !== 1) {
+    pagination.reset()
+    return
+  }
+  load()
+})
 
 // Bookings are made in the patients' app, and only there. The dashboard shows
 // them and manages them -- it does not write new ones, so there is no create
@@ -78,12 +146,45 @@ async function changeStatus(a: Appointment, status: string) {
       </div>
     </div>
 
-    <div class="max-w-xs">
-      <BaseSelect
-        v-model="statusFilter"
-        :options="[{ label: t('appointments.allStatuses'), value: '' }, ...statuses]"
-        :placeholder="undefined"
+    <div class="flex flex-wrap items-center gap-2">
+      <div class="w-44">
+        <BaseSelect
+          v-model="statusFilter"
+          :options="[{ label: t('appointments.allStatuses'), value: '' }, ...statuses]"
+          :placeholder="undefined"
+        />
+      </div>
+      <div class="w-40">
+        <BaseSelect
+          :model-value="preset"
+          :options="presets"
+          :placeholder="undefined"
+          @update:model-value="applyPreset"
+        />
+      </div>
+      <input
+        type="date"
+        class="h-10 rounded-xl border border-surface-border bg-white px-3 text-sm text-slate-800"
+        :value="fromDate"
+        :max="toDate || undefined"
+        @change="setFrom(($event.target as HTMLInputElement).value)"
       />
+      <span class="text-sm text-slate-400">–</span>
+      <input
+        type="date"
+        class="h-10 rounded-xl border border-surface-border bg-white px-3 text-sm text-slate-800"
+        :value="toDate"
+        :min="fromDate || undefined"
+        @change="setTo(($event.target as HTMLInputElement).value)"
+      />
+      <BaseButton
+        v-if="fromDate || toDate"
+        variant="ghost"
+        size="sm"
+        @click="applyPreset('all')"
+      >
+        {{ t('appointments.range.clear') }}
+      </BaseButton>
     </div>
 
     <!-- An account with no doctor behind it has no appointments to list. The

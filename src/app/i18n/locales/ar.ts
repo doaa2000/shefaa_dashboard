@@ -94,6 +94,13 @@ export const ar: Messages = {
     subtitle: 'حجوزاتك',
     allStatuses: 'كل الحالات',
     emptyTitle: 'لا توجد مواعيد',
+    range: {
+      all: 'كل المواعيد',
+      today: 'اليوم',
+      week: 'الأسبوع القادم',
+      custom: 'مدى مخصص',
+      clear: 'إزالة التاريخ',
+    },
     columns: {
       date: 'التاريخ',
       time: 'الوقت',
