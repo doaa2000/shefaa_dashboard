@@ -22,7 +22,4 @@ export class NotificationService {
     return this.repo.markAllAsRead()
   }
 
-  watch(userId: string, onChange: () => void): () => void {
-    return this.repo.watch(userId, onChange)
-  }
 }

@@ -5,7 +5,6 @@ import { useI18n } from 'vue-i18n'
 import AppSidebar from '@/shared/components/AppSidebar.vue'
 import AppTopbar from '@/shared/components/AppTopbar.vue'
 import { useNotificationStore } from '@/features/notifications/store/notification.store'
-import { useAuthStore } from '@/features/auth/store/auth.store'
 
 const route = useRoute()
 const sidebarOpen = ref(false)
@@ -15,12 +14,11 @@ const { t } = useI18n()
 // session and not to the badge that happens to draw it: the list page reads
 // the same store, and neither should be fetching on the other's behalf.
 const notifications = useNotificationStore()
-const auth = useAuthStore()
 let stopWatching: (() => void) | null = null
 
 onMounted(() => {
   void notifications.fetch()
-  stopWatching = notifications.watch(auth.userId)
+  stopWatching = notifications.keepFresh()
 })
 
 onUnmounted(() => stopWatching?.())

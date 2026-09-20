@@ -95,43 +95,4 @@ export class SupabaseNotificationRepository implements INotificationRepository {
       return err(normalizeError(e))
     }
   }
-
-  /**
-   * The open page, told by Postgres.
-   *
-   * Browser push was the only thing that used to bring news to a dashboard
-   * already open, and it is not something we control: it needs a permission
-   * the doctor may have refused, a browser that supports it, and a Firebase
-   * key set for the deployment. Missing any of those, the bell stopped
-   * counting until the page was reloaded.
-   *
-   * Both events matter. A booking writes the row at once, with sent_at null --
-   * queued, not delivered, and the list does not show it yet; it becomes news
-   * when the sender fills sent_at, which is an update. Listening for inserts
-   * alone would hear the earliest possible moment and still find nothing to
-   * draw.
-   *
-   * The filter is for the socket's sake rather than for privacy: row-level
-   * security is what decides which rows reach a subscriber, exactly as it
-   * decides which rows a query returns.
-   */
-  watch(userId: string, onChange: () => void): () => void {
-    const channel = this.client
-      .channel(`notifications:${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${userId}`,
-        },
-        () => onChange(),
-      )
-      .subscribe()
-
-    return () => {
-      void this.client.removeChannel(channel)
-    }
-  }
 }

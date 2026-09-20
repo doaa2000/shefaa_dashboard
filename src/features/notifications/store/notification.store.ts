@@ -129,38 +129,25 @@ export const useNotificationStore = defineStore('notifications', () => {
   }
 
   /**
-   * How long a tab must sit in the background before its live connection is
-   * given up.
-   *
-   * An open socket is not free: it exchanges a keep-alive roughly twice a
-   * minute whether or not anything happens, which over a working day is far
-   * more traffic than the bookings it carries. Dropping it while nobody is
-   * looking costs a few frames to rejoin later, so the wait only has to be
-   * long enough that flicking to another tab and back does not pay that price
-   * over and over.
-   */
-  const BACKGROUND_GRACE_MS = 60_000
-
-  /**
    * Keeps an open dashboard current.
    *
-   * Two sources, because neither covers the other. Postgres tells a signed-in
-   * page about its own rows over the socket the app already holds -- no
-   * permission to ask for, and it works in a browser that cannot do
-   * notifications at all. The service worker message covers the case the
-   * socket does not: a push that arrived while this tab was in the background
-   * and the connection had been dropped.
+   * Nothing runs in the background: no timer, no connection held open. The
+   * page learns about a message the same way the doctor does -- the browser
+   * is told, and this app's own service worker passes that on to whichever
+   * tab is open. Which means browser notifications have to be turned on for
+   * the bell to move by itself; that is the permission the settings page
+   * asks for.
    *
-   * Both end in the same refresh, and a refresh is cheap: one page and one
-   * count.
+   * A read when the tab comes back is the second half of it, and costs
+   * nothing to keep: a push that arrived while the browser was closed, or one
+   * the machine slept through, is caught the moment the doctor looks at the
+   * page again.
    */
-  function watch(userId: string | null): () => void {
+  function keepFresh(): () => void {
     const stops: Array<() => void> = []
 
-    // Marking read is itself an update to this table, so a doctor clearing
-    // thirty messages hears thirty times about work they just did. Waiting a
-    // moment turns any burst into the one refresh it deserves; a single
-    // arrival is delayed by less than anyone can notice.
+    // A message about a booking is two rows arriving together often enough to
+    // be worth collapsing, and the refresh behind this is two requests.
     let pending: ReturnType<typeof setTimeout> | null = null
     const refreshSoon = () => {
       if (pending) clearTimeout(pending)
@@ -174,61 +161,6 @@ export const useNotificationStore = defineStore('notifications', () => {
       pending = null
     })
 
-    // The live connection, held only while somebody is looking at the page.
-    let stopLive: (() => void) | null = null
-    let dropping: ReturnType<typeof setTimeout> | null = null
-
-    const connect = () => {
-      if (stopLive || !userId) return
-      stopLive = service.watch(userId, refreshSoon)
-    }
-
-    const disconnect = () => {
-      stopLive?.()
-      stopLive = null
-    }
-
-    const cancelDrop = () => {
-      if (dropping) clearTimeout(dropping)
-      dropping = null
-    }
-
-    const onVisibility = () => {
-      if (document.visibilityState === 'hidden') {
-        if (!dropping && stopLive) {
-          dropping = setTimeout(() => {
-            dropping = null
-            disconnect()
-          }, BACKGROUND_GRACE_MS)
-        }
-        return
-      }
-
-      cancelDrop()
-      // Nothing was heard while the socket was down, so coming back has to
-      // ask rather than assume. This is the whole reason the reconnect is
-      // paired with a read: without it the bell would show whatever it held
-      // when the doctor looked away.
-      const wasDown = stopLive === null
-      connect()
-      if (wasDown) refreshSoon()
-    }
-
-    // A dashboard opened into a background tab -- a middle click, a restored
-    // session -- should not hold a socket nobody is watching either. It gets
-    // one when it is first looked at, and the read that comes with it.
-    if (document.visibilityState !== 'hidden') connect()
-    document.addEventListener('visibilitychange', onVisibility)
-    stops.push(() => {
-      document.removeEventListener('visibilitychange', onVisibility)
-      cancelDrop()
-      disconnect()
-    })
-
-    // Left running in the background as well. It is the only thing still
-    // listening once the socket is dropped, and it costs nothing to keep:
-    // the message comes from this app's own service worker, not over a
-    // connection held open for it.
     if ('serviceWorker' in navigator) {
       const onMessage = (event: MessageEvent) => {
         if (event.data?.type === 'push') refreshSoon()
@@ -236,6 +168,12 @@ export const useNotificationStore = defineStore('notifications', () => {
       navigator.serviceWorker.addEventListener('message', onMessage)
       stops.push(() => navigator.serviceWorker.removeEventListener('message', onMessage))
     }
+
+    const onVisibility = () => {
+      if (document.visibilityState !== 'hidden') refreshSoon()
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    stops.push(() => document.removeEventListener('visibilitychange', onVisibility))
 
     return () => stops.forEach((stop) => stop())
   }
@@ -252,6 +190,6 @@ export const useNotificationStore = defineStore('notifications', () => {
     loadMore,
     markAsRead,
     markAllAsRead,
-    watch,
+    keepFresh,
   }
 })

@@ -27,9 +27,4 @@ export interface INotificationRepository {
   markAsRead(id: number): Promise<Result<void, AppError>>
   markAllAsRead(): Promise<Result<void, AppError>>
 
-  /**
-   * Calls back whenever a message for this account is written or delivered.
-   * Returns the function that stops listening.
-   */
-  watch(userId: string, onChange: () => void): () => void
 }
