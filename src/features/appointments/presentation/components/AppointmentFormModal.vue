@@ -91,10 +91,20 @@ const onSubmit = handleSubmit((values) => emit('submit', values))
       <FormField :label="t('appointments.modal.status')">
         <BaseSelect v-model="status" :options="statuses" :placeholder="undefined" />
       </FormField>
-      <FormField :label="t('appointments.modal.startTime')" :error="errors.startTime" required>
+      <FormField
+        :label="t('appointments.modal.startTime')"
+        :error="errors.startTime"
+        :hint="t('appointments.modal.startHint')"
+        required
+      >
         <BaseTimePicker v-model="startTime" :invalid="!!errors.startTime" />
       </FormField>
-      <FormField :label="t('appointments.modal.endTime')" :error="errors.endTime" required>
+      <FormField
+        :label="t('appointments.modal.endTime')"
+        :error="errors.endTime"
+        :hint="t('appointments.modal.endHint')"
+        required
+      >
         <BaseTimePicker
           v-model="endTime"
           :min="String(startTime ?? '')"

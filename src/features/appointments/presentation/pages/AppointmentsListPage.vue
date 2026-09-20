@@ -7,6 +7,7 @@ import { usePagination } from '@/shared/composables/usePagination'
 import { useToast } from '@/shared/composables/useToast'
 import { formatDate } from '@/shared/utils/datetime'
 import { statusOptions, statusLabel, statusTone } from '../../domain/appointment.labels'
+import { timeLabel } from '@/features/schedule/domain/schedule.models'
 import AppointmentFormModal from '../components/AppointmentFormModal.vue'
 import type { AppointmentFormValues } from '../../domain/appointment.schema'
 import type { Appointment } from '../../domain/appointment.models'
@@ -86,6 +87,14 @@ const columns = computed<Column[]>(() => [
 ])
 
 const statuses = computed(() => statusOptions())
+
+/** How long the appointment runs, so "9:00 – 9:20" does not have to be
+ *  subtracted in the reader's head while they scan a column of them. */
+function lengthOf(a: Appointment): number {
+  const [sh, sm] = (a.startTime ?? '00:00').split(':').map(Number)
+  const [eh, em] = (a.endTime ?? '00:00').split(':').map(Number)
+  return Math.max(eh * 60 + em - (sh * 60 + sm), 0)
+}
 
 async function load() {
   await store.fetchList({
@@ -199,7 +208,15 @@ async function changeStatus(a: Appointment, status: string) {
       <template #cell:bookedDate="{ row }">
         <span class="font-medium text-slate-800">{{ formatDate(row.bookedDate) }}</span>
       </template>
-      <template #cell:time="{ row }">{{ row.startTime?.slice(0, 5) }} – {{ row.endTime?.slice(0, 5) }}</template>
+      <template #cell:time="{ row }">
+        <p class="font-medium text-slate-800">
+          {{ timeLabel(row.startTime?.slice(0, 5) ?? '') }} –
+          {{ timeLabel(row.endTime?.slice(0, 5) ?? '') }}
+        </p>
+        <p class="text-xs text-slate-500">
+          {{ t('appointments.lasts', { minutes: lengthOf(row) }) }}
+        </p>
+      </template>
       <template #cell:patientName="{ row }">{{ row.patientName ?? '—' }}</template>
       <template #cell:status="{ row }">
         <BaseBadge :tone="statusTone(row.status)">{{ statusLabel(row.status) }}</BaseBadge>
