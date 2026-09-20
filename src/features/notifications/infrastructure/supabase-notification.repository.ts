@@ -29,7 +29,10 @@ export class SupabaseNotificationRepository implements INotificationRepository {
    * account's rows and nothing else, and a filter written here as well would
    * be a second copy of that rule, free to drift from it.
    */
-  async list(offset = 0): Promise<Result<AppNotification[], AppError>> {
+  async list(
+    offset = 0,
+    limit = NOTIFICATIONS_PAGE_SIZE,
+  ): Promise<Result<AppNotification[], AppError>> {
     try {
       const { data, error } = await this.client
         .from('notifications')
@@ -41,7 +44,7 @@ export class SupabaseNotificationRepository implements INotificationRepository {
         // A page of history, not all of it. Two messages per booking means a
         // busy clinic passes a hundred inside a month, and this is re-read
         // every time the dashboard is opened and every time one arrives.
-        .range(offset, offset + NOTIFICATIONS_PAGE_SIZE - 1)
+        .range(offset, offset + limit - 1)
       if (error) return err(normalizeError(error))
 
       return ok(data.map(toNotification))

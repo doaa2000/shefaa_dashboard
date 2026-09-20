@@ -11,8 +11,12 @@ import type { AppNotification } from './notification.models'
  * it twice".
  */
 export interface INotificationRepository {
-  /** One page of history, newest first. `offset` is how many are already held. */
-  list(offset?: number): Promise<Result<AppNotification[], AppError>>
+  /**
+   * History, newest first. `offset` is how many are already held; `limit`
+   * defaults to one page but is raised to re-read everything on screen at
+   * once, which is what a refresh needs.
+   */
+  list(offset?: number, limit?: number): Promise<Result<AppNotification[], AppError>>
 
   /**
    * The bell's number, counted in the database over every message rather than

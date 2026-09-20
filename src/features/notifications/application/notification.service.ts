@@ -6,8 +6,8 @@ import type { AppNotification } from '../domain/notification.models'
 export class NotificationService {
   constructor(private readonly repo: INotificationRepository) {}
 
-  list(offset?: number): Promise<Result<AppNotification[], AppError>> {
-    return this.repo.list(offset)
+  list(offset?: number, limit?: number): Promise<Result<AppNotification[], AppError>> {
+    return this.repo.list(offset, limit)
   }
 
   countUnread(): Promise<Result<number, AppError>> {
