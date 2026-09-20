@@ -200,6 +200,11 @@ export const ar: Messages = {
   payments: {
     title: 'المدفوعات',
     subtitle: 'رسوم الكشف في مواعيدك، وما تم تحصيله فعلًا.',
+    filterPeriod: 'الفترة',
+    filterFrom: 'من تاريخ',
+    filterTo: 'إلى تاريخ',
+    showingDay: 'أرقام يوم {date}',
+    showingRange: 'الأرقام من {from} إلى {to}',
     collected: 'المحصَّل',
     outstanding: 'المستحق',
     net: 'صافي الفترة',

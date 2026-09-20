@@ -12,7 +12,7 @@ import { formatDate, formatDateTime } from '@/shared/utils/datetime'
 import { formatMoney, labelFor } from '@/shared/utils/formatters'
 import { downloadCsv, toCsv } from '@/shared/utils/csv'
 import type { Payment, SettableStatus } from '../../domain/payment.models'
-import { BaseBadge, BaseButton, BaseSelect, BaseTable, type Column } from '@/shared/ui'
+import { BaseBadge, BaseButton, BaseSelect, BaseTable, FormField, type Column } from '@/shared/ui'
 
 const store = usePaymentStore()
 const invoices = useInvoiceStore()
@@ -53,6 +53,22 @@ const methodOptions = computed(() => [
 ])
 
 const money = (n: number) => formatMoney(n)
+
+/**
+ * The range, read back as a sentence.
+ *
+ * Every figure on this page is "for the chosen period" and the period was
+ * only ever stated as two date boxes. A doctor looking at 4,000 has to know
+ * four thousand of what before the number means anything.
+ */
+const showing = computed(() =>
+  range.value.from === range.value.to
+    ? t('payments.showingDay', { date: formatDate(range.value.from) })
+    : t('payments.showingRange', {
+        from: formatDate(range.value.from),
+        to: formatDate(range.value.to),
+      }),
+)
 
 /**
  * Cash is in the drawer and instapay is in the bank, so when a clinic takes
@@ -216,34 +232,47 @@ function exportCsv() {
         <p class="text-sm text-slate-500">{{ t('payments.subtitle') }}</p>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2">
-        <div class="w-40">
+      <!-- Every control labelled. Two bare date boxes with a dash between
+           them leave the reader to work out which end is which, and the dash
+           is the only hint that they are one range rather than two fields. -->
+      <div class="flex flex-wrap items-end gap-3">
+        <FormField :label="t('payments.filterPeriod')" class="w-40">
           <BaseSelect
             :model-value="preset"
             :options="presetOptions"
             @update:model-value="onPreset"
           />
-        </div>
-        <input
-          type="date"
-          class="h-10 rounded-xl border border-surface-border bg-white px-3 text-sm text-slate-800"
-          :value="range.from"
-          :max="range.to"
-          @change="onFrom(($event.target as HTMLInputElement).value)"
-        />
-        <span class="text-sm text-slate-400">–</span>
-        <input
-          type="date"
-          class="h-10 rounded-xl border border-surface-border bg-white px-3 text-sm text-slate-800"
-          :value="range.to"
-          :min="range.from"
-          @change="onTo(($event.target as HTMLInputElement).value)"
-        />
+        </FormField>
+
+        <FormField :label="t('payments.filterFrom')">
+          <input
+            type="date"
+            class="h-10 rounded-xl border border-surface-border bg-white px-3 text-sm text-slate-800"
+            :value="range.from"
+            :max="range.to"
+            @change="onFrom(($event.target as HTMLInputElement).value)"
+          />
+        </FormField>
+
+        <FormField :label="t('payments.filterTo')">
+          <input
+            type="date"
+            class="h-10 rounded-xl border border-surface-border bg-white px-3 text-sm text-slate-800"
+            :value="range.to"
+            :min="range.from"
+            @change="onTo(($event.target as HTMLInputElement).value)"
+          />
+        </FormField>
+
         <BaseButton variant="outline" :disabled="!visibleItems.length" @click="exportCsv">
           {{ t('common.exportCsv') }}
         </BaseButton>
       </div>
     </div>
+
+    <!-- The period the figures below describe, in a sentence. The controls
+         say what can be chosen; this says what is being counted. -->
+    <p class="text-sm text-slate-500">{{ showing }}</p>
 
     <!-- Three questions, in the order a doctor asks them: what came in, what
          has not, and what is mine. Every other figure that used to sit up here

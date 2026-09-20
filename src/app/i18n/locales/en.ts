@@ -198,6 +198,11 @@ export const en = {
   payments: {
     title: 'Payments',
     subtitle: 'Fees for your appointments, and what has actually been collected.',
+    filterPeriod: 'Period',
+    filterFrom: 'From date',
+    filterTo: 'To date',
+    showingDay: 'Figures for {date}',
+    showingRange: 'Figures from {from} to {to}',
     collected: 'Collected',
     outstanding: 'Outstanding',
     net: 'Net for the period',
