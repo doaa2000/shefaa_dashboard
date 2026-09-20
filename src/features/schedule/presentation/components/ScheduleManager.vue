@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { useForm } from 'vee-validate'
@@ -13,6 +13,8 @@ import {
   WHOLE_SESSION,
   minutesPerPatient,
   slotLabel,
+  timeLabel,
+  timeOptions,
   toSlotMinutes,
   windowCount,
   type ScheduleEntry,
@@ -34,6 +36,9 @@ const toast = useToast()
 const { t } = useI18n()
 
 const weekdays = computed(() => weekdayOptions())
+// Every quarter but the last: a session beginning at 23:45 has no end to
+// choose, so it is not offered as a beginning.
+const startTimes = computed(() => timeOptions().slice(0, -1))
 const sessions = computed(() => sessionOptions())
 const slots = computed(() => slotOptions())
 const { byWeekday, items, loading, saving, totalWeeklyCapacity } = storeToRefs(store)
@@ -57,10 +62,21 @@ const { defineField, handleSubmit, errors, resetForm } = useForm<ScheduleFormVal
 
 const [weekday] = defineField('weekday')
 const [session] = defineField('session')
-const [startTime, startAttrs] = defineField('startTime')
-const [endTime, endAttrs] = defineField('endTime')
+const [startTime] = defineField('startTime')
+const [endTime] = defineField('endTime')
 const [capacity, capacityAttrs] = defineField('capacity')
 const [slotMinutes] = defineField('slotMinutes')
+
+/** Only what can follow the start, so "ends before it begins" is unreachable. */
+const endTimes = computed(() => timeOptions(String(startTime.value ?? '')))
+
+// Moving the start past the end would leave a session that ends before it
+// begins selected in a list that no longer offers it. The end follows.
+watch(startTime, (value) => {
+  if (String(endTime.value ?? '') <= String(value ?? '')) {
+    endTime.value = endTimes.value[0]?.value ?? String(value ?? '')
+  }
+})
 
 /**
  * The one choice on this form that changes how a clinic runs, and it was a
@@ -159,10 +175,20 @@ function pace(entry: ScheduleEntry): string {
           <BaseSelect v-model="session" :options="sessions" :placeholder="undefined" />
         </FormField>
         <FormField :label="t('settings.start')" :error="errors.startTime">
-          <BaseInput v-model="startTime" v-bind="startAttrs" type="time" :invalid="!!errors.startTime" />
+          <BaseSelect
+            v-model="startTime"
+            :options="startTimes"
+            :placeholder="undefined"
+            :invalid="!!errors.startTime"
+          />
         </FormField>
         <FormField :label="t('settings.end')" :error="errors.endTime">
-          <BaseInput v-model="endTime" v-bind="endAttrs" type="time" :invalid="!!errors.endTime" />
+          <BaseSelect
+            v-model="endTime"
+            :options="endTimes"
+            :placeholder="undefined"
+            :invalid="!!errors.endTime"
+          />
         </FormField>
       </div>
 
@@ -270,7 +296,8 @@ function pace(entry: ScheduleEntry): string {
                   {{ labelFor('session', entry.session) }}
                 </BaseBadge>
                 <span class="text-sm text-slate-700">
-                  {{ entry.startTime.slice(0, 5) }} – {{ entry.endTime.slice(0, 5) }}
+                  {{ timeLabel(entry.startTime.slice(0, 5)) }} –
+                  {{ timeLabel(entry.endTime.slice(0, 5)) }}
                 </span>
                 <span class="text-sm text-slate-600">{{ t('settings.patientsCount', { count: entry.capacity }) }}</span>
                 <BaseBadge tone="neutral">{{ slotLabel(entry) }}</BaseBadge>

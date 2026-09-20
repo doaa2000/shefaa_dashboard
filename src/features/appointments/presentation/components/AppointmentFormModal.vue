@@ -5,7 +5,7 @@ import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { appointmentSchema, type AppointmentFormValues } from '../../domain/appointment.schema'
 import { statusOptions } from '../../domain/appointment.labels'
-import { sessionOptions } from '@/features/schedule/domain/schedule.models'
+import { sessionOptions, timeOptions } from '@/features/schedule/domain/schedule.models'
 import type { Appointment } from '../../domain/appointment.models'
 import { usePatientOptions } from '@/features/patients/application/usePatientOptions'
 import { BaseButton, BaseInput, BaseModal, BaseSelect, FormField } from '@/shared/ui'
@@ -32,8 +32,20 @@ const { defineField, handleSubmit, errors, resetForm } = useForm<AppointmentForm
 const [patientId] = defineField('patientId')
 const [bookedDate, dateAttrs] = defineField('bookedDate')
 const [session] = defineField('session')
-const [startTime, startAttrs] = defineField('startTime')
-const [endTime, endAttrs] = defineField('endTime')
+const [startTime] = defineField('startTime')
+const [endTime] = defineField('endTime')
+
+// The same lists the schedule page uses. A native time input is three boxes to
+// type numbers into, mirrored in Arabic; these are one tap and cannot be typed
+// wrong. The end offers only what can follow the start.
+const startTimes = computed(() => timeOptions().slice(0, -1))
+const endTimes = computed(() => timeOptions(String(startTime.value ?? '')))
+
+watch(startTime, (value) => {
+  if (String(endTime.value ?? '') <= String(value ?? '')) {
+    endTime.value = endTimes.value[0]?.value ?? String(value ?? '')
+  }
+})
 const [status] = defineField('status')
 
 // Only ever opened on an existing booking: the dashboard does not create them.
@@ -79,10 +91,20 @@ const onSubmit = handleSubmit((values) => emit('submit', values))
         <BaseSelect v-model="status" :options="statuses" :placeholder="undefined" />
       </FormField>
       <FormField :label="t('appointments.modal.startTime')" :error="errors.startTime" required>
-        <BaseInput v-model="startTime" v-bind="startAttrs" type="time" :invalid="!!errors.startTime" />
+        <BaseSelect
+          v-model="startTime"
+          :options="startTimes"
+          :placeholder="undefined"
+          :invalid="!!errors.startTime"
+        />
       </FormField>
       <FormField :label="t('appointments.modal.endTime')" :error="errors.endTime" required>
-        <BaseInput v-model="endTime" v-bind="endAttrs" type="time" :invalid="!!errors.endTime" />
+        <BaseSelect
+          v-model="endTime"
+          :options="endTimes"
+          :placeholder="undefined"
+          :invalid="!!errors.endTime"
+        />
       </FormField>
 </form>
     <template #footer>

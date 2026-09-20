@@ -1,4 +1,4 @@
-import { t } from '@/app/i18n'
+import { intlLocale, t } from '@/app/i18n'
 
 /**
  * A doctor's working week, backed by `doctor_schedule`.
@@ -100,6 +100,55 @@ export function windowCount(entry: ScheduleEntry): number {
   const minutes = eh * 60 + em - (sh * 60 + sm)
   if (minutes <= 0) return 1
   return Math.max(Math.ceil(minutes / entry.slotMinutes), 1)
+}
+
+/**
+ * A time as a clinic says it: "9:00 ص", not "09:00".
+ *
+ * The database wants 24-hour, the reader does not. Built through Intl so the
+ * English side gets "9:00 AM" without a second table of words here.
+ */
+export function timeLabel(value: string): string {
+  const [hours, minutes] = value.split(':').map(Number)
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return value
+
+  // An arbitrary date; only the clock on it is read.
+  const at = new Date(2000, 0, 1, hours, minutes)
+  return new Intl.DateTimeFormat(intlLocale(), {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(at)
+}
+
+/**
+ * Every quarter hour of the day, to choose from.
+ *
+ * A native time input is the browser's own control: three little boxes to type
+ * numbers into, mirrored in Arabic, and no help at all with what a clinic is
+ * actually setting. A list of times is one tap, cannot be typed wrong, and
+ * reads in the same words the patient will see.
+ *
+ * Fifteen minutes because clinics start at quarter past as often as on the
+ * hour, and 96 rows is nothing for a select.
+ */
+export function timeOptions(after?: string): { label: string; value: string }[] {
+  const out: { label: string; value: string }[] = []
+
+  for (let minutes = 0; minutes < 24 * 60; minutes += 15) {
+    const value =
+      String(Math.floor(minutes / 60)).padStart(2, '0') +
+      ':' +
+      String(minutes % 60).padStart(2, '0')
+
+    // The end of a session cannot be before its start, so those times are
+    // simply not offered. An impossible choice that cannot be made needs no
+    // error message to explain it afterwards.
+    if (after && value <= after) continue
+
+    out.push({ label: timeLabel(value), value })
+  }
+
+  return out
 }
 
 export function weekdayOptions(): { label: string; value: number }[] {
