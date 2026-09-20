@@ -27,8 +27,8 @@ import { DashboardService } from '@/features/dashboard/application/dashboard.ser
 import { SupabaseReportRepository } from '@/features/reports/infrastructure/supabase-report.repository'
 import { ReportService } from '@/features/reports/application/report.service'
 
-import { SupabaseScheduleRepository } from '@/features/settings/infrastructure/supabase-schedule.repository'
-import { ScheduleService } from '@/features/settings/application/schedule.service'
+import { SupabaseScheduleRepository } from '@/features/schedule/infrastructure/supabase-schedule.repository'
+import { ScheduleService } from '@/features/schedule/application/schedule.service'
 
 import { SupabasePaymentRepository } from '@/features/payments/infrastructure/supabase-payment.repository'
 import { PaymentService } from '@/features/payments/application/payment.service'

@@ -10,6 +10,7 @@ import { reportRoutes } from '@/features/reports/routes'
 import { paymentRoutes } from '@/features/payments/routes'
 import { invoiceRoutes } from '@/features/invoices/routes'
 import { notificationRoutes } from '@/features/notifications/routes'
+import { scheduleRoutes } from '@/features/schedule/routes'
 import { settingsRoutes } from '@/features/settings/routes'
 import { registerGuards } from './guards'
 
@@ -24,6 +25,7 @@ const routes: RouteRecordRaw[] = [
   ...paymentRoutes,
   ...invoiceRoutes,
   ...notificationRoutes,
+  ...scheduleRoutes,
   ...settingsRoutes,
   {
     path: '/:pathMatch(.*)*',

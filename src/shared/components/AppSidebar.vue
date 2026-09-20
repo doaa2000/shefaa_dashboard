@@ -28,6 +28,7 @@ const items: NavItem[] = [
   { to: '/invoices', label: 'nav.invoices', icon: 'M9 12h6m-6 4h6M8 3h8a2 2 0 012 2v15l-3-2-3 2-3-2-3 2V5a2 2 0 012-2z' },
   { to: '/reports', label: 'nav.reports', icon: 'M9 17v-6m4 6V7m4 10v-3M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z' },
   { to: '/notifications', label: 'nav.notifications', icon: 'M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0a3 3 0 11-6 0m6 0H9' },
+  { to: '/schedule', label: 'nav.schedule', icon: 'M8 7V3m8 4V3M4 11h16M6 21h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2zM9 15h6' },
   { to: '/settings', label: 'nav.settings', icon: 'M10.3 3.6a2 2 0 013.4 0l.3.5a2 2 0 002.3 1l.6-.2a2 2 0 012.4 2.4l-.2.6a2 2 0 001 2.3l.5.3a2 2 0 010 3.4l-.5.3a2 2 0 00-1 2.3l.2.6a2 2 0 01-2.4 2.4l-.6-.2a2 2 0 00-2.3 1l-.3.5a2 2 0 01-3.4 0l-.3-.5a2 2 0 00-2.3-1l-.6.2a2 2 0 01-2.4-2.4l.2-.6a2 2 0 00-1-2.3l-.5-.3a2 2 0 010-3.4l.5-.3a2 2 0 001-2.3l-.2-.6A2 2 0 016.8 4.9l.6.2a2 2 0 002.3-1zM12 15a3 3 0 100-6 3 3 0 000 6z' },
 ]
 </script>
