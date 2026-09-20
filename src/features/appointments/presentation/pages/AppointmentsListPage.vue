@@ -11,7 +11,15 @@ import { timeLabel } from '@/features/schedule/domain/schedule.models'
 import AppointmentFormModal from '../components/AppointmentFormModal.vue'
 import type { AppointmentFormValues } from '../../domain/appointment.schema'
 import type { Appointment } from '../../domain/appointment.models'
-import { BaseBadge, BaseButton, BaseSelect, BasePagination, BaseTable, type Column } from '@/shared/ui'
+import {
+  BaseBadge,
+  BaseButton,
+  BaseSelect,
+  BasePagination,
+  BaseTable,
+  FormField,
+  type Column,
+} from '@/shared/ui'
 
 const store = useAppointmentStore()
 const toast = useToast()
@@ -88,6 +96,31 @@ const columns = computed<Column[]>(() => [
 
 const statuses = computed(() => statusOptions())
 
+/**
+ * The filter, read back as a sentence.
+ *
+ * Four controls describe what can be chosen and none of them says what is
+ * currently being shown -- which is the only question the doctor actually has
+ * when a table looks shorter than they expected.
+ */
+const showing = computed(() => {
+  if (!fromDate.value && !toDate.value) return t('appointments.showingAll', { count: total.value })
+  if (fromDate.value && toDate.value && fromDate.value === toDate.value) {
+    return t('appointments.showingDay', { count: total.value, date: formatDate(fromDate.value) })
+  }
+  if (fromDate.value && toDate.value) {
+    return t('appointments.showingRange', {
+      count: total.value,
+      from: formatDate(fromDate.value),
+      to: formatDate(toDate.value),
+    })
+  }
+  if (fromDate.value) {
+    return t('appointments.showingFrom', { count: total.value, date: formatDate(fromDate.value) })
+  }
+  return t('appointments.showingUntil', { count: total.value, date: formatDate(toDate.value) })
+})
+
 /** How long the appointment runs, so "9:00 – 9:20" does not have to be
  *  subtracted in the reader's head while they scan a column of them. */
 function lengthOf(a: Appointment): number {
@@ -155,37 +188,47 @@ async function changeStatus(a: Appointment, status: string) {
       </div>
     </div>
 
-    <div class="flex flex-wrap items-center gap-2">
-      <div class="w-44">
+    <!-- Every control labelled. Two bare date boxes with a dash between them
+         leave the reader to work out which end is which, and the dash is the
+         only hint that they are one thing rather than two. -->
+    <div class="flex flex-wrap items-end gap-3">
+      <FormField :label="t('appointments.filterStatus')" class="w-44">
         <BaseSelect
           v-model="statusFilter"
           :options="[{ label: t('appointments.allStatuses'), value: '' }, ...statuses]"
           :placeholder="undefined"
         />
-      </div>
-      <div class="w-40">
+      </FormField>
+
+      <FormField :label="t('appointments.filterPeriod')" class="w-40">
         <BaseSelect
           :model-value="preset"
           :options="presets"
           :placeholder="undefined"
           @update:model-value="applyPreset"
         />
-      </div>
-      <input
-        type="date"
-        class="h-10 rounded-xl border border-surface-border bg-white px-3 text-sm text-slate-800"
-        :value="fromDate"
-        :max="toDate || undefined"
-        @change="setFrom(($event.target as HTMLInputElement).value)"
-      />
-      <span class="text-sm text-slate-400">–</span>
-      <input
-        type="date"
-        class="h-10 rounded-xl border border-surface-border bg-white px-3 text-sm text-slate-800"
-        :value="toDate"
-        :min="fromDate || undefined"
-        @change="setTo(($event.target as HTMLInputElement).value)"
-      />
+      </FormField>
+
+      <FormField :label="t('appointments.filterFrom')">
+        <input
+          type="date"
+          class="h-10 rounded-xl border border-surface-border bg-white px-3 text-sm text-slate-800"
+          :value="fromDate"
+          :max="toDate || undefined"
+          @change="setFrom(($event.target as HTMLInputElement).value)"
+        />
+      </FormField>
+
+      <FormField :label="t('appointments.filterTo')">
+        <input
+          type="date"
+          class="h-10 rounded-xl border border-surface-border bg-white px-3 text-sm text-slate-800"
+          :value="toDate"
+          :min="fromDate || undefined"
+          @change="setTo(($event.target as HTMLInputElement).value)"
+        />
+      </FormField>
+
       <BaseButton
         v-if="fromDate || toDate"
         variant="ghost"
@@ -195,6 +238,10 @@ async function changeStatus(a: Appointment, status: string) {
         {{ t('appointments.range.clear') }}
       </BaseButton>
     </div>
+
+    <!-- What the filter currently means, in a sentence. The controls say what
+         can be chosen; this says what is being shown. -->
+    <p class="text-sm text-slate-500">{{ showing }}</p>
 
     <!-- An account with no doctor behind it has no appointments to list. The
          table would just say "No appointments", which reads as a bug. -->
