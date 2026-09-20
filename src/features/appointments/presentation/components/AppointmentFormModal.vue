@@ -5,10 +5,10 @@ import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { appointmentSchema, type AppointmentFormValues } from '../../domain/appointment.schema'
 import { statusOptions } from '../../domain/appointment.labels'
-import { sessionOptions, timeOptions } from '@/features/schedule/domain/schedule.models'
+import { sessionOptions } from '@/features/schedule/domain/schedule.models'
 import type { Appointment } from '../../domain/appointment.models'
 import { usePatientOptions } from '@/features/patients/application/usePatientOptions'
-import { BaseButton, BaseInput, BaseModal, BaseSelect, FormField } from '@/shared/ui'
+import { BaseButton, BaseInput, BaseModal, BaseSelect, BaseTimePicker, FormField } from '@/shared/ui'
 
 const props = defineProps<{ modelValue: boolean; appointment?: Appointment | null; saving?: boolean }>()
 const emit = defineEmits<{
@@ -35,15 +35,16 @@ const [session] = defineField('session')
 const [startTime] = defineField('startTime')
 const [endTime] = defineField('endTime')
 
-// The same lists the schedule page uses. A native time input is three boxes to
-// type numbers into, mirrored in Arabic; these are one tap and cannot be typed
-// wrong. The end offers only what can follow the start.
-const startTimes = computed(() => timeOptions().slice(0, -1))
-const endTimes = computed(() => timeOptions(String(startTime.value ?? '')))
-
+// The same picker the schedule page uses, and the same floor: the end cannot
+// be set before the start, and moving the start carries it along.
 watch(startTime, (value) => {
   if (String(endTime.value ?? '') <= String(value ?? '')) {
-    endTime.value = endTimes.value[0]?.value ?? String(value ?? '')
+    const [h, m] = String(value ?? '00:00').split(':').map(Number)
+    const minutes = Math.min(h * 60 + m + 15, 23 * 60 + 45)
+    endTime.value =
+      String(Math.floor(minutes / 60)).padStart(2, '0') +
+      ':' +
+      String(minutes % 60).padStart(2, '0')
   }
 })
 const [status] = defineField('status')
@@ -91,18 +92,12 @@ const onSubmit = handleSubmit((values) => emit('submit', values))
         <BaseSelect v-model="status" :options="statuses" :placeholder="undefined" />
       </FormField>
       <FormField :label="t('appointments.modal.startTime')" :error="errors.startTime" required>
-        <BaseSelect
-          v-model="startTime"
-          :options="startTimes"
-          :placeholder="undefined"
-          :invalid="!!errors.startTime"
-        />
+        <BaseTimePicker v-model="startTime" :invalid="!!errors.startTime" />
       </FormField>
       <FormField :label="t('appointments.modal.endTime')" :error="errors.endTime" required>
-        <BaseSelect
+        <BaseTimePicker
           v-model="endTime"
-          :options="endTimes"
-          :placeholder="undefined"
+          :min="String(startTime ?? '')"
           :invalid="!!errors.endTime"
         />
       </FormField>

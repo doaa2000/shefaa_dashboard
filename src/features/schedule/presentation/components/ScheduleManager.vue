@@ -14,7 +14,6 @@ import {
   minutesPerPatient,
   slotLabel,
   timeLabel,
-  timeOptions,
   toSlotMinutes,
   windowCount,
   type ScheduleEntry,
@@ -26,6 +25,7 @@ import {
   BaseCard,
   BaseInput,
   BaseSelect,
+  BaseTimePicker,
   BaseBadge,
   FormField,
   BaseEmptyState,
@@ -36,9 +36,6 @@ const toast = useToast()
 const { t } = useI18n()
 
 const weekdays = computed(() => weekdayOptions())
-// Every quarter but the last: a session beginning at 23:45 has no end to
-// choose, so it is not offered as a beginning.
-const startTimes = computed(() => timeOptions().slice(0, -1))
 const sessions = computed(() => sessionOptions())
 const slots = computed(() => slotOptions())
 const { byWeekday, items, loading, saving, totalWeeklyCapacity } = storeToRefs(store)
@@ -67,16 +64,24 @@ const [endTime] = defineField('endTime')
 const [capacity, capacityAttrs] = defineField('capacity')
 const [slotMinutes] = defineField('slotMinutes')
 
-/** Only what can follow the start, so "ends before it begins" is unreachable. */
-const endTimes = computed(() => timeOptions(String(startTime.value ?? '')))
-
 // Moving the start past the end would leave a session that ends before it
-// begins selected in a list that no longer offers it. The end follows.
+// begins. The picker refuses to set one, and this carries the end along.
 watch(startTime, (value) => {
   if (String(endTime.value ?? '') <= String(value ?? '')) {
-    endTime.value = endTimes.value[0]?.value ?? String(value ?? '')
+    endTime.value = nextQuarter(String(value ?? ''))
   }
 })
+
+/** The first mark after a time, for pushing the end out of the way. */
+function nextQuarter(from: string): string {
+  const [h, m] = from.split(':').map(Number)
+  const minutes = Math.min(h * 60 + m + 15, 23 * 60 + 45)
+  return (
+    String(Math.floor(minutes / 60)).padStart(2, '0') +
+    ':' +
+    String(minutes % 60).padStart(2, '0')
+  )
+}
 
 /**
  * The one choice on this form that changes how a clinic runs, and it was a
@@ -175,18 +180,13 @@ function pace(entry: ScheduleEntry): string {
           <BaseSelect v-model="session" :options="sessions" :placeholder="undefined" />
         </FormField>
         <FormField :label="t('settings.start')" :error="errors.startTime">
-          <BaseSelect
-            v-model="startTime"
-            :options="startTimes"
-            :placeholder="undefined"
-            :invalid="!!errors.startTime"
-          />
+          <BaseTimePicker v-model="startTime" :invalid="!!errors.startTime" />
         </FormField>
         <FormField :label="t('settings.end')" :error="errors.endTime">
-          <BaseSelect
+          <!-- Floored at the start, so an end before it cannot be picked. -->
+          <BaseTimePicker
             v-model="endTime"
-            :options="endTimes"
-            :placeholder="undefined"
+            :min="String(startTime ?? '')"
             :invalid="!!errors.endTime"
           />
         </FormField>
