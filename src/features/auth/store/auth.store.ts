@@ -23,6 +23,16 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => session.value !== null)
   const userId = computed(() => session.value?.user.id ?? null)
+
+  /**
+   * True while the doctor is still using a password an admin handed them.
+   *
+   * The guard keeps the rest of the dashboard closed until this is false. It
+   * is not a security boundary -- the password already works -- it is what
+   * stops a password that travelled through a phone message from becoming the
+   * permanent one because nobody got round to it.
+   */
+  const mustChangePassword = computed(() => session.value?.user.mustChangePassword === true)
   /** The Doctors.id used to scope all dashboard data. */
   const doctorId = computed(() => profile.value?.id ?? null)
 
@@ -157,6 +167,20 @@ export const useAuthStore = defineStore('auth', () => {
     return false
   }
 
+  /** Replaces the handed-over password with one the doctor chose. */
+  async function changePassword(newPassword: string, confirmation: string): Promise<boolean> {
+    loading.value = true
+    error.value = null
+    const result = await service.changePassword(newPassword, confirmation)
+    loading.value = false
+    if (!isOk(result)) {
+      error.value = result.error
+      return false
+    }
+    session.value = result.value
+    return true
+  }
+
   return {
     session,
     profile,
@@ -166,11 +190,13 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     userId,
     doctorId,
+    mustChangePassword,
     initialize,
     loadProfile,
     signIn,
     register,
     signOut,
     updateProfile,
+    changePassword,
   }
 })

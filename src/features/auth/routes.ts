@@ -14,6 +14,15 @@ export const authRoutes: RouteRecordRaw[] = [
     meta: { layout: 'auth', public: true, titleKey: 'nav.createAccount' },
   },
   {
+    // Not public: this is for somebody already signed in, either because they
+    // were handed a password or because they came from settings to replace
+    // one. A signed-out visitor belongs at the login screen.
+    path: '/change-password',
+    name: 'change-password',
+    component: () => import('./presentation/pages/ChangePasswordPage.vue'),
+    meta: { layout: 'auth', titleKey: 'nav.changePassword' },
+  },
+  {
     path: '/forgot-password',
     name: 'forgot-password',
     component: () => import('./presentation/pages/ForgotPasswordPage.vue'),

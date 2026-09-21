@@ -60,6 +60,39 @@ export class SupabaseAuthRepository implements IAuthRepository {
     }
   }
 
+  /**
+   * Replaces the password, and drops the mark in the same call.
+   *
+   * One request rather than two: a change that succeeded while the mark
+   * stayed would send the doctor straight back to this screen with a password
+   * that is already theirs.
+   */
+  async changePassword(newPassword: string): Promise<Result<Session, AppError>> {
+    try {
+      const { error } = await this.client.auth.updateUser({
+        password: newPassword,
+        data: { must_change_password: false },
+      })
+      if (error) return err(normalizeError(error))
+
+      // updateUser answers with the user, not a session; the session in hand
+      // is the one that was just refreshed by it.
+      const { data: fresh, error: sessionError } = await this.client.auth.getSession()
+      if (sessionError) return err(normalizeError(sessionError))
+
+      const session = toSession(fresh.session)
+      if (!session) {
+        return err(
+          new AppError('auth', 'The password changed, but the session was lost. Sign in again.'),
+        )
+      }
+      // Belt and braces: the local session may predate the metadata write.
+      return ok({ ...session, user: { ...session.user, mustChangePassword: false } })
+    } catch (e) {
+      return err(normalizeError(e))
+    }
+  }
+
   async sendPasswordReset(email: string): Promise<Result<void, AppError>> {
     try {
       const { error } = await this.client.auth.resetPasswordForEmail(email, {

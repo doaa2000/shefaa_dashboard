@@ -18,6 +18,11 @@ export interface IAuthRepository {
   signUp(payload: RegisterPayload): Promise<Result<Session | null, AppError>>
   signOut(): Promise<Result<void, AppError>>
   sendPasswordReset(email: string): Promise<Result<void, AppError>>
+  /**
+   * Sets a new password for the signed-in doctor, and clears the mark that
+   * says the current one was handed to them.
+   */
+  changePassword(newPassword: string): Promise<Result<Session, AppError>>
   /** Returns the Doctors row linked to the auth user, or null if not linked yet. */
   getProfile(userId: string): Promise<Result<DoctorProfile | null, AppError>>
   /** Creates the Doctors row for a freshly registered doctor. */

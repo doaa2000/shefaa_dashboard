@@ -3,6 +3,15 @@
 export interface AuthUser {
   id: string
   email: string
+  /**
+   * Whether this password was issued by an admin and has not been replaced.
+   *
+   * A first password is handed over by hand -- read down a phone, sent in a
+   * message -- so it has been somewhere the doctor does not control before
+   * they ever use it. It stands until they choose their own, and the
+   * dashboard does not open until they do.
+   */
+  mustChangePassword: boolean
 }
 
 export interface Session {

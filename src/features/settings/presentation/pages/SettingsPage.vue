@@ -2,6 +2,7 @@
 import { useI18n } from 'vue-i18n'
 import ProfileForm from '../components/ProfileForm.vue'
 import NotificationsCard from '../components/NotificationsCard.vue'
+import PasswordCard from '../components/PasswordCard.vue'
 
 const { t } = useI18n()
 </script>
@@ -13,6 +14,7 @@ const { t } = useI18n()
       <p class="text-sm text-slate-500">{{ t('settings.subtitle') }}</p>
     </div>
     <ProfileForm />
+    <PasswordCard />
     <NotificationsCard />
   </div>
 </template>

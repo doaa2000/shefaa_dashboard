@@ -38,6 +38,28 @@ export class AuthService {
     return this.repo.sendPasswordReset(email)
   }
 
+  /**
+   * The shortest password this will accept.
+   *
+   * Supabase refuses under six, but the ones that arrive here were typed by a
+   * person who was just told to change one and wants to get on with their
+   * day. Eight is the point where that impulse stops producing a password
+   * weaker than the issued one it replaces.
+   */
+  static readonly MIN_PASSWORD = 8
+
+  changePassword(newPassword: string, confirmation: string): Promise<Result<Session, AppError>> {
+    if (newPassword.length < AuthService.MIN_PASSWORD) {
+      return Promise.resolve(
+        err(AppError.validation(`Password must be at least ${AuthService.MIN_PASSWORD} characters.`)),
+      )
+    }
+    if (newPassword !== confirmation) {
+      return Promise.resolve(err(AppError.validation('The two passwords do not match.')))
+    }
+    return this.repo.changePassword(newPassword)
+  }
+
   loadProfile(userId: string): Promise<Result<DoctorProfile | null, AppError>> {
     return this.repo.getProfile(userId)
   }
