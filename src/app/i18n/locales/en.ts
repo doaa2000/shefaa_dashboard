@@ -462,6 +462,7 @@ export const en = {
     unknown: 'Something went wrong. Please try again.',
     duplicate: 'A record with these details already exists.',
     relatedMissing: 'Related record is missing or in use.',
+    sessionExpired: 'Your session has ended. Please sign in again.',
   },
   validation: {
     emailRequired: 'Email is required',

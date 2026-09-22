@@ -464,6 +464,7 @@ export const ar: Messages = {
     unknown: 'حدث خطأ ما. يرجى المحاولة مرة أخرى.',
     duplicate: 'يوجد سجل بالبيانات نفسها بالفعل.',
     relatedMissing: 'السجل المرتبط غير موجود أو قيد الاستخدام.',
+    sessionExpired: 'انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.',
   },
   validation: {
     emailRequired: 'اكتب البريد الإلكتروني',

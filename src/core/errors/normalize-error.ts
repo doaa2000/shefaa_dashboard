@@ -3,6 +3,20 @@ import { AuthError } from '@supabase/supabase-js'
 import { AppError } from './app-error'
 import { t } from '@/app/i18n'
 
+/**
+ * A session the server will no longer accept.
+ *
+ * PostgREST answers PGRST301 when the token it was handed has expired or is
+ * otherwise unusable; auth-js raises its own error when the refresh token
+ * behind it has been revoked -- by a password change, by an admin reset, or
+ * by another tab having already spent it. The two arrive by different routes
+ * and mean the same thing to the doctor, so they are recognised together.
+ *
+ * Matched on the message as well as the code because the same condition
+ * reaches us worded rather than numbered, depending on which layer noticed.
+ */
+const EXPIRED = /jwt expired|jwt is expired|invalid jwt|refresh token|session[ _]not[ _]found|session from session_id claim/i
+
 function isPostgrestError(value: unknown): value is PostgrestError {
   return (
     typeof value === 'object' &&
@@ -21,10 +35,21 @@ export function normalizeError(error: unknown): AppError {
   if (error instanceof AppError) return error
 
   if (error instanceof AuthError) {
+    if (EXPIRED.test(error.message) || EXPIRED.test(error.code ?? '')) {
+      return AppError.auth(t('errors.sessionExpired'), error)
+    }
     return AppError.auth(error.message, error)
   }
 
   if (isPostgrestError(error)) {
+    // Checked before the codes below, because an expired session is the one
+    // failure that is not about the request at all -- every query on the
+    // screen fails the same way, and the answer is to sign in again rather
+    // than to read what the query said.
+    if (error.code === 'PGRST301' || EXPIRED.test(error.message ?? '')) {
+      return AppError.auth(t('errors.sessionExpired'), error)
+    }
+
     switch (error.code) {
       // RLS violation / insufficient privilege.
       case '42501':

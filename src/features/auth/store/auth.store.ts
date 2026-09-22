@@ -1,6 +1,8 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { container } from '@/app/providers/container'
+import { t } from '@/app/i18n'
+import { useToast } from '@/shared/composables/useToast'
 import { isOk } from '@/core/result'
 import type { AppError } from '@/core/errors'
 import type {
@@ -37,6 +39,10 @@ export const useAuthStore = defineStore('auth', () => {
   const doctorId = computed(() => profile.value?.id ?? null)
 
   let unsubscribe: (() => void) | null = null
+  // Raised around a sign-out this app asked for. Supabase announces one the
+  // same way it announces a session that was revoked underneath us, and only
+  // the caller knows which of the two just happened.
+  let signingOut = false
 
   async function initialize(): Promise<void> {
     if (initialized.value) return
@@ -56,10 +62,37 @@ export const useAuthStore = defineStore('auth', () => {
       }
     }
     unsubscribe ??= service.observe((next) => {
+      const had = session.value !== null
       session.value = next
-      if (!next) profile.value = null
+      if (!next) {
+        profile.value = null
+        if (had && !signingOut) void sessionEnded()
+      }
     })
     initialized.value = true
+  }
+
+  /**
+   * The session ended without anybody pressing sign out.
+   *
+   * It happens when the refresh token behind it stops being accepted: the
+   * password was changed, an admin reset it, or another tab already spent
+   * the token. Whoever is looking at the screen then has a dashboard where
+   * every query fails with the same message, and no reason to connect that
+   * to their account -- so say it once and send them to the login screen
+   * rather than leave them to work it out from the errors.
+   *
+   * The router is imported here rather than at the top of the file because
+   * it builds its guards from this store, and importing it there would be a
+   * cycle. An explicit sign out never reaches this: it routes itself, and
+   * this only runs for a session that ended on its own.
+   */
+  async function sessionEnded(): Promise<void> {
+    const { router } = await import('@/router')
+    const current = router.currentRoute.value
+    if (current.meta.public === true) return
+    useToast().info(t('errors.sessionExpired'))
+    await router.replace({ name: 'login', query: { redirect: current.fullPath } })
   }
 
   async function loadProfile(): Promise<void> {
@@ -106,10 +139,15 @@ export const useAuthStore = defineStore('auth', () => {
   /// Drops the session without touching `error`, so the reason it was dropped
   /// survives to be shown.
   async function discard(): Promise<void> {
-    await push.release()
-    await service.signOut()
-    session.value = null
-    profile.value = null
+    signingOut = true
+    try {
+      await push.release()
+      await service.signOut()
+      session.value = null
+      profile.value = null
+    } finally {
+      signingOut = false
+    }
   }
 
   async function register(payload: RegisterPayload): Promise<boolean> {
@@ -145,12 +183,17 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function signOut(): Promise<void> {
-    // Before the sign-out, never after: the database drops the row belonging
-    // to the caller, and a moment later there is no caller.
-    await push.release()
-    await service.signOut()
-    session.value = null
-    profile.value = null
+    signingOut = true
+    try {
+      // Before the sign-out, never after: the database drops the row belonging
+      // to the caller, and a moment later there is no caller.
+      await push.release()
+      await service.signOut()
+      session.value = null
+      profile.value = null
+    } finally {
+      signingOut = false
+    }
   }
 
   async function updateProfile(patch: DoctorProfilePatch): Promise<boolean> {
