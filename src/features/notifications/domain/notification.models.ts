@@ -6,8 +6,10 @@
 export type NotificationKind =
   | 'booking_created_doctor'
   | 'booking_cancelled_doctor'
+  | 'booking_rescheduled_doctor'
   | 'booking_created'
   | 'booking_cancelled'
+  | 'booking_rescheduled'
   | 'reminder_day'
   | 'reminder_hour'
 
