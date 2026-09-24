@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
+import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
@@ -24,6 +25,15 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
+/**
+ * The clinic collects cash and nothing else, so there is no choice to offer.
+ *
+ * Still sent, and still the one the payments table records: a payment row with
+ * no method is a row the statement cannot group, and the day a second method
+ * appears this is where it comes back.
+ */
+const CASH = 'cash'
+
 /** YYYY-MM-DD in the clinic's own day, not UTC's. */
 function today(): string {
   const d = new Date()
@@ -33,7 +43,7 @@ function today(): string {
 
 const { defineField, handleSubmit, errors, resetForm } = useForm<ClinicBookingFormValues>({
   validationSchema: computed(() => toTypedSchema(clinicBookingSchema())),
-  initialValues: { bookedDate: today(), paid: false, method: 'cash', amount: '', window: '' },
+  initialValues: { bookedDate: today(), paid: false, method: CASH, amount: '', window: '' },
 })
 
 const [name] = defineField('name')
@@ -42,7 +52,6 @@ const [bookedDate, dateAttrs] = defineField('bookedDate')
 const [windowKey] = defineField('window')
 const [amount] = defineField('amount')
 const [paid] = defineField('paid')
-const [method] = defineField('method')
 
 // Opened fresh every time. A form that remembers the last patient's name is a
 // form that will one day book the wrong person.
@@ -51,7 +60,7 @@ watch(
   (open) => {
     if (!open) return
     resetForm({
-      values: { name: '', phone: '', bookedDate: today(), window: '', amount: '', paid: false, method: 'cash' },
+      values: { name: '', phone: '', bookedDate: today(), window: '', amount: '', paid: false, method: CASH },
     })
     emit('date-change', today())
   },
@@ -86,11 +95,7 @@ const chosen = computed(() => props.windows.find((w) => keyOf(w) === String(wind
  *  deliberately -- so the only place this can be a decision is here. */
 const overCapacity = computed(() => !!chosen.value && chosen.value.remaining <= 0)
 
-// The three payments_payment_method_check allows, and no more: an option the
-// database refuses is a form that fails after it has been filled in.
-const methods = computed(() =>
-  ['cash', 'instapay', 'card'].map((value) => ({ label: labelFor('method', value), value })),
-)
+
 
 const onSubmit = handleSubmit((form) => {
   const w = props.windows.find((x) => keyOf(x) === form.window)
@@ -104,7 +109,7 @@ const onSubmit = handleSubmit((form) => {
     endTime: w.endTime,
     amount: form.amount === '' || form.amount === undefined ? null : Number(form.amount),
     paid: !!form.paid,
-    method: form.method,
+    method: CASH,
   })
 })
 </script>
@@ -156,6 +161,21 @@ const onSubmit = handleSubmit((form) => {
         />
       </FormField>
 
+      <!-- A disabled select saying "no appointments" is a dead end: it states
+           the problem and not one thing to do about it, and the form cannot be
+           submitted from there. The reason is always the same one -- the
+           doctor holds no session that weekday, or it is closed for that date
+           -- so it is said, with the page that fixes it. -->
+      <div
+        v-if="!loadingWindows && windowOptions.length === 0 && bookedDate"
+        class="sm:col-span-2 rounded-xl border border-surface-border bg-slate-50 px-3 py-2 text-sm text-slate-600"
+      >
+        <p>{{ t('appointments.clinic.noWindowsWhy') }}</p>
+        <RouterLink to="/schedule" class="mt-1 inline-block font-medium text-primary-700 hover:underline">
+          {{ t('appointments.clinic.openSchedule') }}
+        </RouterLink>
+      </div>
+
       <!-- The one thing the clinic is owed before they decide, rather than in
            a toast after the booking already exists. -->
       <p
@@ -171,10 +191,6 @@ const onSubmit = handleSubmit((form) => {
         :hint="t('appointments.clinic.feeHint')"
       >
         <BaseInput v-model="amount" type="number" min="0" step="1" :invalid="!!errors.amount" />
-      </FormField>
-
-      <FormField :label="t('appointments.clinic.method')">
-        <BaseSelect v-model="method" :options="methods" :placeholder="undefined" />
       </FormField>
 
       <label class="sm:col-span-2 flex items-center gap-2 text-sm text-slate-700">
