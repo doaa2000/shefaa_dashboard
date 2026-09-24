@@ -4,6 +4,9 @@ import type {
   Appointment,
   AppointmentListQuery,
   AppointmentListResult,
+  BookableWindow,
+  ClinicBookingResult,
+  RecordClinicBookingInput,
   UpdateAppointmentInput,
 } from './appointment.models'
 
@@ -17,4 +20,9 @@ export interface IAppointmentRepository {
   update(id: number, input: UpdateAppointmentInput): Promise<Result<Appointment, AppError>>
   updateStatus(id: number, status: string): Promise<Result<Appointment, AppError>>
   remove(id: number): Promise<Result<void, AppError>>
+  /** The windows this doctor is offering on a date, with how full each is. */
+  windowsOn(doctorId: number, date: string): Promise<Result<BookableWindow[], AppError>>
+  recordClinicBooking(
+    input: RecordClinicBookingInput,
+  ): Promise<Result<ClinicBookingResult, AppError>>
 }

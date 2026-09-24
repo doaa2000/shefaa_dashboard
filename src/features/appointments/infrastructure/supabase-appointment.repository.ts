@@ -6,6 +6,9 @@ import type {
   Appointment,
   AppointmentListQuery,
   AppointmentListResult,
+  BookableWindow,
+  ClinicBookingResult,
+  RecordClinicBookingInput,
   UpdateAppointmentInput,
 } from '../domain/appointment.models'
 import { toAppointment, toUpdate } from './appointment.mapper'
@@ -74,6 +77,63 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
       const { error } = await this.client.from('bookings').delete().eq('id', id)
       if (error) return err(normalizeError(error))
       return ok(undefined)
+    } catch (e) {
+      return err(normalizeError(e))
+    }
+  }
+
+  async windowsOn(doctorId: number, date: string): Promise<Result<BookableWindow[], AppError>> {
+    try {
+      const { data, error } = await this.client.rpc('doctor_sessions_on', {
+        p_doctor: doctorId,
+        p_date: date,
+      })
+      if (error) return err(normalizeError(error))
+      return ok(
+        (data ?? []).map((row) => ({
+          session: row.session,
+          // Postgres hands back seconds; every other time in this dashboard is
+          // HH:MM, and the two must match or the select never finds its option.
+          startTime: String(row.start_time).slice(0, 5),
+          endTime: String(row.end_time).slice(0, 5),
+          capacity: row.capacity,
+          booked: Number(row.booked ?? 0),
+          remaining: row.remaining,
+          hasStarted: row.has_started,
+        })),
+      )
+    } catch (e) {
+      return err(normalizeError(e))
+    }
+  }
+
+  async recordClinicBooking(
+    input: RecordClinicBookingInput,
+  ): Promise<Result<ClinicBookingResult, AppError>> {
+    try {
+      const { data, error } = await this.client.rpc('doctor_record_booking', {
+        p_date: input.bookedDate,
+        p_session: input.session,
+        p_start: input.startTime,
+        p_end: input.endTime,
+        p_name: input.name,
+        p_phone: input.phone ?? null,
+        // Undefined and null both mean "the doctor's usual fee". Zero does
+        // not, and has to survive the difference.
+        p_amount: input.amount ?? null,
+        p_paid: input.paid,
+        p_method: input.method,
+      })
+      if (error) return err(normalizeError(error))
+      const row = data as Record<string, unknown>
+      return ok({
+        bookingId: Number(row.bookingId),
+        linked: Boolean(row.linked),
+        amount: Number(row.amount ?? 0),
+        capacity: row.capacity == null ? null : Number(row.capacity),
+        booked: Number(row.booked ?? 0),
+        overCapacity: Boolean(row.overCapacity),
+      })
     } catch (e) {
       return err(normalizeError(e))
     }

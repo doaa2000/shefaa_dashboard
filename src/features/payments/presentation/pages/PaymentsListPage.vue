@@ -99,8 +99,14 @@ const chargedCount = computed(
 
 /** The fees no share was taken from, because the bookings predate the
  *  arrangement. Without this figure the card asks the reader to accept that
- *  12% of 4,000 is 60, and the reason is a sentence they have to go and find. */
-const unchargedFees = computed(() => feesTotal.value - summary.value.commissionable)
+ *  12% of 4,000 is 60, and the reason is a sentence they have to go and find.
+ *
+ *  The clinic's own visits are taken out first. They are also uncharged, and
+ *  for a different reason that has its own line -- leaving them in would make
+ *  this figure disagree with the count beside it. */
+const unchargedFees = computed(
+  () => feesTotal.value - summary.value.commissionable - summary.value.clinicFees,
+)
 
 /** What the period earned before the platform's share came out of it. The
  *  share was taken off `net` by the database, so adding it back is the same
@@ -328,6 +334,17 @@ function exportCsv() {
             t('payments.unratedNote', {
               count: summary.unrated,
               amount: money(unchargedFees),
+            })
+          }}
+        </p>
+        <!-- Grey, where the line above is amber. Nothing here needs looking
+             into: these are the clinic's own patients, and the platform taking
+             no share of them is the arrangement working, not a gap in it. -->
+        <p v-if="summary.clinicCount > 0" class="mt-2 text-xs text-slate-500">
+          {{
+            t('payments.clinicNote', {
+              count: summary.clinicCount,
+              amount: money(summary.clinicFees),
             })
           }}
         </p>

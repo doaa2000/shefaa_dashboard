@@ -7,8 +7,17 @@ export function toAppointment(row: BookingRow): Appointment {
   return {
     id: row.id,
     patientId: row.patient_id,
-    patientName: row.profiles?.name ?? null,
+    // The profile's name first. A clinic booking that turned out to belong to
+    // somebody with an account carries both, and the account's name is the one
+    // the patient chose for themselves.
+    patientName: row.profiles?.name ?? row.walk_in_name ?? null,
     doctorId: row.doctor_id,
+    // Rows written before the clinic could enter one have no origin column
+    // value to read only if the migration has not run; the default is 'app'
+    // and matches what every one of them is.
+    origin: row.origin ?? 'app',
+    walkInName: row.walk_in_name ?? null,
+    walkInPhone: row.walk_in_phone ?? null,
     paymentId: row.payment_id,
     bookedDate: row.booked_date,
     // Rows written before the queue model carry no session; they were all

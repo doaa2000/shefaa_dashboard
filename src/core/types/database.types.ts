@@ -93,7 +93,11 @@ export interface Database {
       bookings: {
         Row: {
           id: number
-          patient_id: string
+          // Nullable, and not only in theory: bookings.patient_id is
+          // `on delete set null`, so deleting an account leaves the visit
+          // behind without the person. A clinic booking for somebody with no
+          // account never had one to begin with.
+          patient_id: string | null
           doctor_id: number
           payment_id: number | null
           booked_date: string
@@ -102,10 +106,14 @@ export interface Database {
           end_time: string
           status: string | null
           created_at: string | null
+          /** 'app' or 'clinic'. Decides whether commission is charged. */
+          origin: string
+          walk_in_name: string | null
+          walk_in_phone: string | null
         }
         Insert: {
           id?: number
-          patient_id: string
+          patient_id?: string | null
           doctor_id: number
           payment_id?: number | null
           booked_date: string
@@ -113,6 +121,12 @@ export interface Database {
           start_time: string
           end_time: string
           status?: string | null
+          // Not writable from here in practice: the clinic's bookings go
+          // through doctor_record_booking, and the guard trigger refuses a
+          // patient who tries to change any of the three.
+          origin?: string
+          walk_in_name?: string | null
+          walk_in_phone?: string | null
         }
         Update: Partial<Database['public']['Tables']['bookings']['Insert']>
         Relationships: [
@@ -418,6 +432,32 @@ export interface Database {
       unregister_device_token: { Args: { p_token: string }; Returns: undefined }
       mark_notification_read: { Args: { p_id: number }; Returns: undefined }
       mark_all_notifications_read: { Args: Record<string, never>; Returns: number }
+      doctor_sessions_on: {
+        Args: { p_doctor: number; p_date: string }
+        Returns: {
+          session: string
+          start_time: string
+          end_time: string
+          capacity: number
+          booked: number
+          remaining: number
+          has_started: boolean
+        }[]
+      }
+      doctor_record_booking: {
+        Args: {
+          p_date: string
+          p_session: string
+          p_start: string
+          p_end: string
+          p_name?: string | null
+          p_phone?: string | null
+          p_amount?: number | null
+          p_paid?: boolean
+          p_method?: string
+        }
+        Returns: Json
+      }
     }
     Enums: Record<never, never>
   }

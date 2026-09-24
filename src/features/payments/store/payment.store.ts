@@ -43,6 +43,8 @@ const emptySummary: PaymentSummary = {
   unpaidCount: 0,
   commission: 0,
   commissionable: 0,
+  clinicCount: 0,
+  clinicFees: 0,
   net: 0,
   unrated: 0,
 }

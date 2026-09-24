@@ -47,6 +47,8 @@ export class SupabasePaymentRepository implements IPaymentRepository {
           net: Number(summary?.net ?? 0),
           commissionable: Number(summary?.commissionable ?? 0),
           unrated: Number(summary?.unrated ?? 0),
+          clinicCount: Number(summary?.clinicCount ?? 0),
+          clinicFees: Number(summary?.clinicFees ?? 0),
         },
         byMethod: (raw.byMethod ?? []).map(
           (m): MethodTotals => ({
@@ -61,6 +63,9 @@ export class SupabasePaymentRepository implements IPaymentRepository {
         items: (raw.items ?? []).map(
           (p): Payment => ({
             ...p,
+            // A statement read before migration 0062 has no origin on its
+            // rows, and every booking in it came from the app.
+            origin: p.origin ?? 'app',
             amount: Number(p.amount ?? 0),
             commissionRate: p.commissionRate == null ? null : Number(p.commissionRate),
             commissionAmount:

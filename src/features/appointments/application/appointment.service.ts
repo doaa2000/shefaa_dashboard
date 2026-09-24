@@ -5,6 +5,9 @@ import type {
   Appointment,
   AppointmentListQuery,
   AppointmentListResult,
+  BookableWindow,
+  ClinicBookingResult,
+  RecordClinicBookingInput,
   UpdateAppointmentInput,
 } from '../domain/appointment.models'
 
@@ -33,5 +36,15 @@ export class AppointmentService {
 
   remove(id: number): Promise<Result<void, AppError>> {
     return this.repo.remove(id)
+  }
+
+  windowsOn(doctorId: number, date: string): Promise<Result<BookableWindow[], AppError>> {
+    return this.repo.windowsOn(doctorId, date)
+  }
+
+  recordClinicBooking(
+    input: RecordClinicBookingInput,
+  ): Promise<Result<ClinicBookingResult, AppError>> {
+    return this.repo.recordClinicBooking(input)
   }
 }

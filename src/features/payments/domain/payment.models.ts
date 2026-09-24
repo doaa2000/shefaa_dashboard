@@ -19,6 +19,9 @@ export interface Payment {
   endTime: string | null
   bookingStatus: string | null
   patientName: string | null
+  /** 'app' or 'clinic'. A clinic row carries no commission by design, not by
+   *  accident, and the table says which it is looking at. */
+  origin: string
   amount: number
   method: string | null
   status: PaymentStatus
@@ -58,6 +61,10 @@ export interface PaymentSummary {
   /** Bookings from before the platform had a share. Reported so the doctor can
    *  see the figures above do not silently include them. */
   unrated: number
+  /** Visits the clinic took outside the app. The platform brought none of them
+   *  and takes nothing from them, so they are stated rather than deducted. */
+  clinicCount: number
+  clinicFees: number
 }
 
 /** Cash is in the drawer and instapay is in the bank; they are counted apart

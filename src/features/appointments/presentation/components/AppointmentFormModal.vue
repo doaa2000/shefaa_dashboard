@@ -20,6 +20,11 @@ const { options: patientOptions } = usePatientOptions()
 const { t } = useI18n()
 
 const statuses = computed(() => statusOptions())
+
+/** The name the clinic wrote down, when there is no account behind it. */
+const walkIn = computed(() =>
+  props.appointment && !props.appointment.patientId ? props.appointment.walkInName : null,
+)
 const sessions = computed(() => sessionOptions())
 
 const { defineField, handleSubmit, errors, resetForm } = useForm<AppointmentFormValues>({
@@ -57,7 +62,7 @@ watch(
     if (!open || !a) return
     resetForm({
       values: {
-        patientId: a.patientId,
+        patientId: a.patientId ?? undefined,
         bookedDate: a.bookedDate,
         session: a.session === 'evening' ? 'evening' : 'morning',
         startTime: a.startTime?.slice(0, 5),
@@ -79,7 +84,19 @@ const onSubmit = handleSubmit((values) => emit('submit', values))
     @update:model-value="emit('update:modelValue', $event)"
   >
     <form id="appointment-form" class="grid grid-cols-1 gap-4 sm:grid-cols-2" @submit="onSubmit">
-      <FormField class="sm:col-span-2" :label="t('appointments.modal.patient')" :error="errors.patientId" required>
+      <!-- A booking the clinic took for somebody with no account has a name
+           and nothing to select. Showing the patient list here would ask the
+           doctor to attach a stranger's account to it before they could
+           change its time. -->
+      <FormField
+        v-if="walkIn"
+        class="sm:col-span-2"
+        :label="t('appointments.modal.patient')"
+        :hint="t('appointments.modal.walkInHint')"
+      >
+        <BaseInput :model-value="walkIn" readonly />
+      </FormField>
+      <FormField v-else class="sm:col-span-2" :label="t('appointments.modal.patient')" :error="errors.patientId" required>
         <BaseSelect v-model="patientId" :options="patientOptions" :placeholder="t('appointments.modal.selectPatient')" :invalid="!!errors.patientId" />
       </FormField>
       <FormField :label="t('appointments.modal.date')" :error="errors.bookedDate" required>

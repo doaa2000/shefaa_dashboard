@@ -7,6 +7,9 @@ import { useAuthStore } from '@/features/auth/store/auth.store'
 import type {
   Appointment,
   AppointmentListQuery,
+  BookableWindow,
+  ClinicBookingResult,
+  RecordClinicBookingInput,
   UpdateAppointmentInput,
 } from '../domain/appointment.models'
 
@@ -77,10 +80,51 @@ export const useAppointmentStore = defineStore('appointments', () => {
     return false
   }
 
+  const windows = ref<BookableWindow[]>([])
+  const loadingWindows = ref(false)
+
+  /** What the doctor is offering on one date. Cleared first, so a slow answer
+   *  for a new date cannot be read as the answer for the old one. */
+  async function fetchWindows(date: string): Promise<void> {
+    windows.value = []
+    if (!auth.doctorId || !date) return
+    loadingWindows.value = true
+    const result = await service.windowsOn(auth.doctorId, date)
+    loadingWindows.value = false
+    if (isOk(result)) windows.value = result.value
+    else error.value = result.error
+  }
+
+  async function recordClinicBooking(
+    input: RecordClinicBookingInput,
+  ): Promise<ClinicBookingResult | null> {
+    saving.value = true
+    error.value = null
+    const result = await service.recordClinicBooking(input)
+    saving.value = false
+    if (isOk(result)) return result.value
+    error.value = result.error
+    return null
+  }
+
   function patchLocal(updated: Appointment): void {
     const idx = items.value.findIndex((a) => a.id === updated.id)
     if (idx !== -1) items.value[idx] = updated
   }
 
-  return { items, total, loading, saving, error, fetchList, update, setStatus, remove }
+  return {
+    items,
+    total,
+    loading,
+    saving,
+    error,
+    windows,
+    loadingWindows,
+    fetchList,
+    update,
+    setStatus,
+    remove,
+    fetchWindows,
+    recordClinicBooking,
+  }
 })

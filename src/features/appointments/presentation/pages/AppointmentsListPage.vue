@@ -9,8 +9,9 @@ import { formatDate } from '@/shared/utils/datetime'
 import { statusOptions, statusLabel, statusTone } from '../../domain/appointment.labels'
 import { timeLabel } from '@/features/schedule/domain/schedule.models'
 import AppointmentFormModal from '../components/AppointmentFormModal.vue'
+import ClinicBookingModal from '../components/ClinicBookingModal.vue'
 import type { AppointmentFormValues } from '../../domain/appointment.schema'
-import type { Appointment } from '../../domain/appointment.models'
+import type { Appointment, RecordClinicBookingInput } from '../../domain/appointment.models'
 import {
   BaseBadge,
   BaseButton,
@@ -24,7 +25,7 @@ import {
 const store = useAppointmentStore()
 const toast = useToast()
 const { t } = useI18n()
-const { items, total, loading, saving, error } = storeToRefs(store)
+const { items, total, loading, saving, error, windows, loadingWindows } = storeToRefs(store)
 
 const pagination = usePagination({ pageSize: 10 })
 const statusFilter = ref<string>('')
@@ -90,6 +91,7 @@ const columns = computed<Column[]>(() => [
   { key: 'bookedDate', label: t('appointments.columns.date') },
   { key: 'time', label: t('appointments.columns.time') },
   { key: 'patientName', label: t('appointments.columns.patient') },
+  { key: 'origin', label: t('appointments.columns.origin'), align: 'center' },
   { key: 'status', label: t('appointments.columns.status'), align: 'center' },
   { key: 'actions', label: '', align: 'right' },
 ])
@@ -154,9 +156,34 @@ watch([statusFilter, fromDate, toDate], () => {
   load()
 })
 
-// Bookings are made in the patients' app, and only there. The dashboard shows
-// them and manages them -- it does not write new ones, so there is no create
-// path here and none behind it either.
+// The clinic's own door, beside the app's. A booking taken on the telephone
+// goes in here rather than the doctor taking the whole window down to hide the
+// one place it used up.
+const clinicOpen = ref(false)
+
+async function onRecordClinicBooking(input: RecordClinicBookingInput) {
+  const result = await store.recordClinicBooking(input)
+  if (!result) {
+    if (store.error) toast.error(t('appointments.clinic.saveFailed'), store.error.message)
+    return
+  }
+  clinicOpen.value = false
+  // Three different things happened and the clinic is told which. A booking
+  // that quietly went into a full session, or that quietly failed to find the
+  // account behind a number, is a booking the desk finds out about later.
+  if (result.overCapacity) {
+    toast.warning(
+      t('appointments.clinic.saved'),
+      t('appointments.clinic.savedOverCapacity', { booked: result.booked + 1, capacity: result.capacity ?? 0 }),
+    )
+  } else if (result.linked) {
+    toast.success(t('appointments.clinic.saved'), t('appointments.clinic.savedLinked'))
+  } else {
+    toast.success(t('appointments.clinic.saved'))
+  }
+  await load()
+}
+
 function openEdit(a: Appointment) {
   editing.value = a
   modalOpen.value = true
@@ -186,6 +213,7 @@ async function changeStatus(a: Appointment, status: string) {
         <h1 class="text-xl font-semibold text-slate-900">{{ t('appointments.title') }}</h1>
         <p class="text-sm text-slate-500">{{ t('appointments.subtitle') }}</p>
       </div>
+      <BaseButton @click="clinicOpen = true">{{ t('appointments.clinic.add') }}</BaseButton>
     </div>
 
     <!-- Every control labelled. Two bare date boxes with a dash between them
@@ -264,7 +292,19 @@ async function changeStatus(a: Appointment, status: string) {
           {{ t('appointments.lasts', { minutes: lengthOf(row) }) }}
         </p>
       </template>
-      <template #cell:patientName="{ row }">{{ row.patientName ?? '—' }}</template>
+      <template #cell:patientName="{ row }">
+        <p class="text-slate-800">{{ row.patientName ?? '—' }}</p>
+        <!-- The number is the only way back to somebody with no account, so it
+             belongs where their name is rather than behind an edit screen. -->
+        <p v-if="row.origin === 'clinic' && row.walkInPhone" class="text-xs text-slate-500" dir="ltr">
+          {{ row.walkInPhone }}
+        </p>
+      </template>
+      <template #cell:origin="{ row }">
+        <BaseBadge :tone="row.origin === 'clinic' ? 'neutral' : 'info'">
+          {{ row.origin === 'clinic' ? t('appointments.origin.clinic') : t('appointments.origin.app') }}
+        </BaseBadge>
+      </template>
       <template #cell:status="{ row }">
         <BaseBadge :tone="statusTone(row.status)">{{ statusLabel(row.status) }}</BaseBadge>
       </template>
@@ -293,5 +333,14 @@ async function changeStatus(a: Appointment, status: string) {
     />
 
     <AppointmentFormModal v-model="modalOpen" :appointment="editing" :saving="saving" @submit="onSubmit" />
+
+    <ClinicBookingModal
+      v-model="clinicOpen"
+      :windows="windows"
+      :loading-windows="loadingWindows"
+      :saving="saving"
+      @date-change="store.fetchWindows"
+      @submit="onRecordClinicBooking"
+    />
   </div>
 </template>
