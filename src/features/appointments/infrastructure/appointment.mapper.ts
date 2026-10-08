@@ -18,6 +18,10 @@ export function toAppointment(row: BookingRow): Appointment {
     origin: row.origin ?? 'app',
     walkInName: row.walk_in_name ?? null,
     walkInPhone: row.walk_in_phone ?? null,
+    // Rows written before the schedule could be cut into appointments carry
+    // no value; they were all whole-session bookings, so that is the honest
+    // default -- the same one the database column takes.
+    wholeSession: row.whole_session ?? false,
     paymentId: row.payment_id,
     bookedDate: row.booked_date,
     // Rows written before the queue model carry no session; they were all

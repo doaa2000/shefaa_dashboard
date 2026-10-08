@@ -110,6 +110,12 @@ export interface Database {
           origin: string
           walk_in_name: string | null
           walk_in_phone: string | null
+          // Which of the two things the booking is, decided when it was made.
+          // True: the doctor offered the session whole and everyone who booked
+          // holds the same stretch of the day, seen in the order they arrive.
+          // False: the session is cut into appointments and this is a time to
+          // be there at. The queue is ordered differently for each.
+          whole_session: boolean
         }
         Insert: {
           id?: number
@@ -127,6 +133,7 @@ export interface Database {
           origin?: string
           walk_in_name?: string | null
           walk_in_phone?: string | null
+          whole_session?: boolean
         }
         Update: Partial<Database['public']['Tables']['bookings']['Insert']>
         Relationships: [

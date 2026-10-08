@@ -21,36 +21,70 @@ export interface Appointment {
   endTime: string
   status: string
   createdAt: string | null
+  /** True when the doctor offered the session whole: everyone holds the same
+   *  stretch of the day and is seen in the order they arrive. False when the
+   *  session is cut into appointments and this is a time to be there at. The
+   *  two queue differently. */
+  wholeSession: boolean
 }
 
-/** An appointment with the place it holds in its session's queue. */
+/** An appointment with the place it holds in the day's queue. */
 export interface QueueEntry extends Appointment {
   /**
-   * Position in this window's list, for the doctor's own reading only.
+   * Position in the queue, for the clinic's own reading only.
    *
-   * The patient is never shown a number: the clinic sees people in the order
-   * they walk in, and most of them never booked through the app, so no
-   * position computed from bookings would describe the room.
+   * The patient is never shown a number. For a whole-session doctor the
+   * clinic sees people in the order they walk in, and the system does not yet
+   * know who has walked in -- so a number computed from bookings would be a
+   * guess presented as a fact.
    */
   position: number
+  /** Seen, or cancelled, or absent: out of the queue either way. */
+  isDone: boolean
+  /** Still to be seen. */
+  isWaiting: boolean
 }
 
 /**
- * One bookable window of a day, split into who is left and who is done.
+ * One bookable window of the day, with its own people.
  *
  * A session the doctor left whole is a single window from its start to its
  * end; one with an appointment length set is several.
  */
-export interface SessionQueue {
+export interface QueueWindow {
   session: string
-  /** The window, e.g. "09:00" - "10:00". */
+  /** The window, e.g. "18:00" - "18:20". */
   startTime: string
   endTime: string
   entries: QueueEntry[]
-  /** The patient being seen now: the first one not yet dealt with. */
+  /** Whether the clock has reached this window. */
+  hasStarted: boolean
+  /** Whether everybody in it has been dealt with. */
+  isFinished: boolean
+}
+
+/**
+ * The whole day, read as a queue.
+ *
+ * `current` is inferred, not recorded: it is the first booking nobody has
+ * marked as seen, absent or cancelled. That makes it only as true as the
+ * clinic's marking -- which is why the page puts "seen" under one tap rather
+ * than behind a dropdown. Until there is an arrival time on the booking, this
+ * is the best the data supports, and the page says so rather than implying
+ * the system knows who is in the room.
+ */
+export interface DayQueue {
+  date: string
+  windows: QueueWindow[]
+  /** Who the clinic is with now, as far as the marking says. */
   current: QueueEntry | null
-  waiting: QueueEntry[]
-  done: QueueEntry[]
+  /** Who follows them. */
+  next: QueueEntry | null
+  seen: number
+  waiting: number
+  absent: number
+  /** Everyone still to be seen, in order, across every window of the day. */
+  remaining: QueueEntry[]
 }
 
 export interface AppointmentListQuery {

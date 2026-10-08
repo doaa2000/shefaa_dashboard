@@ -42,6 +42,10 @@ export class AppointmentService {
     return this.repo.windowsOn(doctorId, date)
   }
 
+  dayOf(doctorId: number, date: string): Promise<Result<Appointment[], AppError>> {
+    return this.repo.dayOf(doctorId, date)
+  }
+
   recordClinicBooking(
     input: RecordClinicBookingInput,
   ): Promise<Result<ClinicBookingResult, AppError>> {

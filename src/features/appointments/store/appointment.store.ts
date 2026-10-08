@@ -83,6 +83,41 @@ export const useAppointmentStore = defineStore('appointments', () => {
   const windows = ref<BookableWindow[]>([])
   const loadingWindows = ref(false)
 
+  /** One date's bookings, for the queue. Kept apart from `items`, which is
+   *  the paged list the appointments page shows. */
+  const day = ref<Appointment[]>([])
+  const loadingDay = ref(false)
+
+  async function fetchDay(date: string): Promise<void> {
+    if (!auth.doctorId) {
+      day.value = []
+      return
+    }
+    loadingDay.value = true
+    const result = await service.dayOf(auth.doctorId, date)
+    loadingDay.value = false
+    if (isOk(result)) {
+      day.value = result.value
+      error.value = null
+    } else {
+      error.value = result.error
+    }
+  }
+
+  /** Moves one booking along and keeps the day in step, so the queue advances
+   *  without a round trip for the whole list. */
+  async function setDayStatus(id: number, status: string): Promise<boolean> {
+    const result = await service.setStatus(id, status)
+    if (isOk(result)) {
+      const idx = day.value.findIndex((a) => a.id === id)
+      if (idx >= 0) day.value[idx] = result.value
+      patchLocal(result.value)
+      return true
+    }
+    error.value = result.error
+    return false
+  }
+
   /** What the doctor is offering on one date. Cleared first, so a slow answer
    *  for a new date cannot be read as the answer for the old one. */
   async function fetchWindows(date: string): Promise<void> {
@@ -120,7 +155,11 @@ export const useAppointmentStore = defineStore('appointments', () => {
     error,
     windows,
     loadingWindows,
+    day,
+    loadingDay,
     fetchList,
+    fetchDay,
+    setDayStatus,
     update,
     setStatus,
     remove,

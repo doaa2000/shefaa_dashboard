@@ -82,6 +82,29 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     }
   }
 
+  async dayOf(doctorId: number, date: string): Promise<Result<Appointment[], AppError>> {
+    try {
+      const { data, error } = await this.client
+        .from('bookings')
+        .select(SELECT)
+        .eq('doctor_id', doctorId)
+        .eq('booked_date', date)
+        // One ordering that is right for both kinds of session. For a doctor
+        // working to a clock, start_time separates every patient and decides
+        // the order. For one who offers the session whole, every row shares
+        // the same start_time, so created_at breaks the tie -- the order they
+        // booked in, which is the only order the data knows until an arrival
+        // time is recorded.
+        .order('start_time', { ascending: true })
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true })
+      if (error) return err(normalizeError(error))
+      return ok(data.map(toAppointment))
+    } catch (e) {
+      return err(normalizeError(e))
+    }
+  }
+
   async windowsOn(doctorId: number, date: string): Promise<Result<BookableWindow[], AppError>> {
     try {
       const { data, error } = await this.client.rpc('doctor_sessions_on', {

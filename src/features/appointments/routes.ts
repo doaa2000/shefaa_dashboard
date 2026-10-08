@@ -7,4 +7,10 @@ export const appointmentRoutes: RouteRecordRaw[] = [
     component: () => import('./presentation/pages/AppointmentsListPage.vue'),
     meta: { titleKey: 'nav.appointments' },
   },
+  {
+    path: '/queue',
+    name: 'queue',
+    component: () => import('./presentation/pages/QueuePage.vue'),
+    meta: { titleKey: 'nav.queue' },
+  },
 ]
