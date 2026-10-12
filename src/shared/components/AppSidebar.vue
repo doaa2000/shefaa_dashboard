@@ -29,6 +29,7 @@ const items: NavItem[] = [
   { to: '/patients', label: 'nav.patients', icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-2a4 4 0 10-4-4 4 4 0 004 4z' },
   { to: '/payments', label: 'nav.payments', icon: 'M3 10h18M7 15h2m4 0h4M5 6h14a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z' },
   { to: '/invoices', label: 'nav.invoices', icon: 'M9 12h6m-6 4h6M8 3h8a2 2 0 012 2v15l-3-2-3 2-3-2-3 2V5a2 2 0 012-2z' },
+  { to: '/reviews', label: 'nav.reviews', icon: 'M12 3l2.7 5.5 6 .9-4.4 4.3 1 6L12 16.9 6.7 19.7l1-6L3.3 9.4l6-.9z' },
   { to: '/reports', label: 'nav.reports', icon: 'M9 17v-6m4 6V7m4 10v-3M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z' },
   { to: '/notifications', label: 'nav.notifications', icon: 'M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0a3 3 0 11-6 0m6 0H9' },
   { to: '/schedule', label: 'nav.schedule', icon: 'M8 7V3m8 4V3M4 11h16M6 21h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2zM9 15h6' },

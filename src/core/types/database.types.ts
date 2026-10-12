@@ -402,6 +402,23 @@ export interface Database {
         Update: never
         Relationships: []
       }
+      doctor_reviews: {
+        Row: {
+          id: number
+          booking_id: number
+          doctor_id: number
+          patient_id: string
+          stars: number
+          comment: string | null
+          created_at: string
+          updated_at: string
+        }
+        // Written only through rate_booking, by the patient who was seen. The
+        // doctor reads their own, notes included (Shefaa migration 0067).
+        Insert: never
+        Update: never
+        Relationships: []
+      }
       notifications: {
         Row: {
           id: number
