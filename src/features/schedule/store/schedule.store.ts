@@ -10,7 +10,11 @@ import type {
   UpdateScheduleInput,
 } from '../domain/schedule.models'
 import { weekdayOptions } from '../domain/schedule.models'
-import type { ScheduleClosure, CreateClosureInput } from '../domain/schedule.models'
+import type {
+  ScheduleClosure,
+  CreateClosureInput,
+  BookedInClosure,
+} from '../domain/schedule.models'
 
 export const useScheduleStore = defineStore('schedules', () => {
   const service = container.scheduleService
@@ -128,12 +132,13 @@ export const useScheduleStore = defineStore('schedules', () => {
     else error.value = result.error
   }
 
-  /** How many people are booked into that date already. Asked before closing,
-   *  because closing tells nobody: the doctor has to. */
-  async function bookingsOn(date: string, session: string | null): Promise<number> {
-    if (!auth.doctorId) return 0
+  /** Who is booked into that date already, and so will be cancelled by
+   *  closing it. Null when it could not be found out: better to say nothing
+   *  than to say "nobody is booked" about a day that is full. */
+  async function bookingsOn(date: string, session: string | null): Promise<BookedInClosure | null> {
+    if (!auth.doctorId) return null
     const result = await service.countBookingsOn(auth.doctorId, date, session)
-    return isOk(result) ? result.value : 0
+    return isOk(result) ? result.value : null
   }
 
   async function addClosure(input: CreateClosureInput): Promise<boolean> {

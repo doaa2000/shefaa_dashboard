@@ -8,6 +8,7 @@ import {
   closureScopeOptions,
   toClosureSession,
   type ScheduleClosure,
+  type BookedInClosure,
 } from '../../domain/schedule.models'
 import { useToast } from '@/shared/composables/useToast'
 import { formatDate } from '@/shared/utils/datetime'
@@ -18,6 +19,7 @@ import {
   BaseCard,
   BaseEmptyState,
   BaseInput,
+  BaseModal,
   BaseSelect,
   FormField,
 } from '@/shared/ui'
@@ -39,10 +41,16 @@ const date = ref(today())
 const scope = ref<string>(WHOLE_DAY)
 const reason = ref('')
 
-/** How many people are already booked into what is about to be closed. Looked
- *  up as the date changes, because it is the one thing that should stop a
- *  doctor mid-click -- and nothing tells those patients but the doctor. */
-const booked = ref<number | null>(null)
+/** Who is already booked into what is about to be closed. Looked up as the
+ *  date changes, because closing cancels every one of them (migration 0064),
+ *  and that is the one thing that should stop a doctor mid-click. */
+const booked = ref<BookedInClosure | null>(null)
+const bookedTotal = computed(() =>
+  booked.value ? booked.value.notified + booked.value.toCall : 0,
+)
+
+/** Closing a day with people in it cancels them, so it is asked, not done. */
+const confirming = ref(false)
 
 const scopes = computed(() => closureScopeOptions())
 
@@ -58,7 +66,17 @@ onMounted(async () => {
 })
 watch([date, scope], refreshBooked)
 
+function requestAdd() {
+  if (bookedTotal.value > 0) {
+    confirming.value = true
+    return
+  }
+  add()
+}
+
 async function add() {
+  confirming.value = false
+  const cancelled = bookedTotal.value
   const added = await store.addClosure({
     date: date.value,
     session: toClosureSession(scope.value),
@@ -66,7 +84,11 @@ async function add() {
   })
 
   if (added) {
-    toast.success(t('settings.closureAdded'))
+    toast.success(
+      cancelled > 0
+        ? t('settings.closureAddedCancelled', { count: cancelled })
+        : t('settings.closureAdded'),
+    )
     reason.value = ''
     await refreshBooked()
     return
@@ -94,7 +116,7 @@ const scopeLabel = (closure: ScheduleClosure) =>
 
 <template>
   <BaseCard :title="t('settings.closures')" :subtitle="t('settings.closuresSubtitle')">
-    <form class="grid grid-cols-1 gap-3 sm:grid-cols-4" @submit.prevent="add">
+    <form class="grid grid-cols-1 gap-3 sm:grid-cols-4" @submit.prevent="requestAdd">
       <FormField :label="t('settings.closureDate')">
         <!-- No past dates: closing a day that has gone changes nothing and
              leaves a row that looks like it did something. -->
@@ -115,15 +137,34 @@ const scopeLabel = (closure: ScheduleClosure) =>
       </div>
     </form>
 
-    <!-- The whole point of asking first. Closing a day does not reach the
-         people booked into it; the doctor has to. -->
-    <p
-      v-if="booked !== null"
-      class="mt-3 text-sm"
-      :class="booked > 0 ? 'text-amber-700' : 'text-slate-500'"
-    >
-      {{ booked > 0 ? t('settings.closureBooked', { count: booked }) : t('settings.closureBookedNone') }}
-    </p>
+    <!-- Said before the button is pressed: closing cancels these bookings. -->
+    <div v-if="booked !== null" class="mt-3 space-y-1 text-sm">
+      <p v-if="bookedTotal === 0" class="text-slate-500">{{ t('settings.closureBookedNone') }}</p>
+      <template v-else>
+        <p class="text-amber-700">{{ t('settings.closureBooked', { count: bookedTotal }) }}</p>
+        <p v-if="booked.toCall > 0" class="text-amber-700">
+          {{ t('settings.closureBookedToCall', { count: booked.toCall }) }}
+        </p>
+      </template>
+    </div>
+
+    <BaseModal v-model="confirming" size="sm" :title="t('settings.closureConfirmTitle', { count: bookedTotal })">
+      <div class="space-y-2 text-sm text-slate-600">
+        <p>{{ t('settings.closureConfirmBody', { count: bookedTotal }) }}</p>
+        <p v-if="booked && booked.toCall > 0" class="text-amber-700">
+          {{ t('settings.closureBookedToCall', { count: booked.toCall }) }}
+        </p>
+        <p>{{ t('settings.closureConfirmNoUndo') }}</p>
+      </div>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <BaseButton variant="ghost" @click="confirming = false">{{ t('settings.closureConfirmBack') }}</BaseButton>
+          <BaseButton variant="danger" :loading="saving" @click="add">
+            {{ t('settings.closureConfirmAction') }}
+          </BaseButton>
+        </div>
+      </template>
+    </BaseModal>
 
     <div class="mt-5">
       <BaseEmptyState
