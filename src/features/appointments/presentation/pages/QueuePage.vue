@@ -5,6 +5,7 @@ import { useToast } from '@/shared/composables/useToast'
 import { useQueue, isoDay } from '../../application/useQueue'
 import { timeLabel } from '@/features/schedule/domain/schedule.models'
 import { labelFor } from '@/shared/utils/formatters'
+import { formatTime } from '@/shared/utils/datetime'
 import { statusLabel, statusTone } from '../../domain/appointment.labels'
 import { BaseBadge, BaseButton, BaseCard, FormField } from '@/shared/ui'
 import type { QueueEntry } from '../../domain/appointment.models'
@@ -34,6 +35,16 @@ async function seen(entry: QueueEntry): Promise<void> {
 
 async function absent(entry: QueueEntry): Promise<void> {
   if (await q.markAbsent(entry.id)) toast.info(t('queue.markedAbsent', { name: q.nameOf(entry) }))
+  else if (q.error.value) toast.error(t('queue.failed'), q.error.value.message)
+}
+
+async function arrived(entry: QueueEntry): Promise<void> {
+  if (await q.markArrived(entry.id)) toast.success(t('queue.markedArrived', { name: q.nameOf(entry) }))
+  else if (q.error.value) toast.error(t('queue.failed'), q.error.value.message)
+}
+
+async function notArrived(entry: QueueEntry): Promise<void> {
+  if (await q.markNotArrived(entry.id)) toast.info(t('queue.unmarkedArrived', { name: q.nameOf(entry) }))
   else if (q.error.value) toast.error(t('queue.failed'), q.error.value.message)
 }
 
@@ -71,12 +82,16 @@ function windowLabel(startTime: string, endTime: string): string {
       </div>
     </div>
 
-    <!-- Three numbers, which is the question the desk is actually asked:
-         "how many left?" -->
-    <div class="grid grid-cols-3 gap-3">
+    <!-- The questions the desk is actually asked: how many are here, how many
+         are still to come, how many are done. -->
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
       <BaseCard class="text-center">
-        <p class="text-sm text-slate-500">{{ t('queue.waiting') }}</p>
-        <p class="mt-1 text-3xl font-semibold text-primary-900">{{ q.queue.value.waiting }}</p>
+        <p class="text-sm text-slate-500">{{ t('queue.present') }}</p>
+        <p class="mt-1 text-3xl font-semibold text-primary-900">{{ q.queue.value.present }}</p>
+      </BaseCard>
+      <BaseCard class="text-center">
+        <p class="text-sm text-slate-500">{{ t('queue.notArrived') }}</p>
+        <p class="mt-1 text-3xl font-semibold text-amber-600">{{ q.queue.value.notArrived }}</p>
       </BaseCard>
       <BaseCard class="text-center">
         <p class="text-sm text-slate-500">{{ t('queue.seen') }}</p>
@@ -88,7 +103,7 @@ function windowLabel(startTime: string, endTime: string): string {
       </BaseCard>
     </div>
 
-    <!-- The one card the room is about. -->
+    <!-- The one card the room is about: whose turn it is, among those here. -->
     <div
       v-if="q.queue.value.current"
       class="rounded-2xl border-2 border-primary-200 bg-primary-50 p-5"
@@ -107,6 +122,7 @@ function windowLabel(startTime: string, endTime: string): string {
         </BaseBadge>
       </div>
       <p class="mt-1 text-sm text-slate-600">
+        {{ t('queue.bookingNumber', { n: q.queue.value.current.position }) }} ·
         {{ windowLabel(q.queue.value.current.startTime, q.queue.value.current.endTime) }}
         <span v-if="q.queue.value.current.walkInPhone" dir="ltr" class="ms-2 text-slate-500">
           {{ q.queue.value.current.walkInPhone }}
@@ -117,8 +133,8 @@ function windowLabel(startTime: string, endTime: string): string {
            marking happens, and marking buried in a dropdown does not happen. -->
       <div class="mt-4 flex flex-wrap gap-2">
         <BaseButton @click="seen(q.queue.value.current)">{{ t('queue.markSeen') }}</BaseButton>
-        <BaseButton variant="outline" @click="absent(q.queue.value.current)">
-          {{ t('queue.markAbsent') }}
+        <BaseButton variant="ghost" @click="notArrived(q.queue.value.current)">
+          {{ t('queue.markNotArrived') }}
         </BaseButton>
       </div>
 
@@ -128,7 +144,7 @@ function windowLabel(startTime: string, endTime: string): string {
           {{ q.nameOf(q.queue.value.next) || t('queue.unnamed') }}
         </span>
         <span class="text-slate-500">
-          — {{ windowLabel(q.queue.value.next.startTime, q.queue.value.next.endTime) }}
+          — {{ t('queue.bookingNumber', { n: q.queue.value.next.position }) }}
         </span>
       </p>
     </div>
@@ -137,12 +153,18 @@ function windowLabel(startTime: string, endTime: string): string {
       v-else-if="!q.loading.value"
       class="rounded-2xl border border-surface-border bg-white p-6 text-center"
     >
-      <p class="font-medium text-slate-800">
-        {{ q.queue.value.windows.length ? t('queue.allDone') : t('queue.nobodyBooked') }}
-      </p>
-      <p class="mt-1 text-sm text-slate-500">
-        {{ q.queue.value.windows.length ? t('queue.allDoneBody') : t('queue.nobodyBookedBody') }}
-      </p>
+      <template v-if="q.queue.value.notArrived > 0">
+        <p class="font-medium text-slate-800">{{ t('queue.nobodyHere') }}</p>
+        <p class="mt-1 text-sm text-slate-500">{{ t('queue.nobodyHereBody') }}</p>
+      </template>
+      <template v-else>
+        <p class="font-medium text-slate-800">
+          {{ q.queue.value.windows.length ? t('queue.allDone') : t('queue.nobodyBooked') }}
+        </p>
+        <p class="mt-1 text-sm text-slate-500">
+          {{ q.queue.value.windows.length ? t('queue.allDoneBody') : t('queue.nobodyBookedBody') }}
+        </p>
+      </template>
     </div>
 
     <!-- The whole day under it, grouped the way the doctor published it. -->
@@ -159,11 +181,11 @@ function windowLabel(startTime: string, endTime: string): string {
         <div
           v-for="e in w.entries"
           :key="e.id"
-          class="flex items-center gap-3 border-b border-surface-border px-4 py-3 last:border-b-0"
+          class="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-surface-border px-4 py-3 last:border-b-0"
           :class="{ 'bg-slate-50': e.isDone }"
         >
           <span class="w-6 text-center text-sm font-medium text-slate-400">{{ e.position }}</span>
-          <div class="min-w-0 flex-1">
+          <div class="min-w-[9rem] flex-1">
             <p class="truncate font-medium" :class="e.isDone ? 'text-slate-400' : 'text-slate-800'">
               {{ q.nameOf(e) || t('queue.unnamed') }}
             </p>
@@ -171,16 +193,29 @@ function windowLabel(startTime: string, endTime: string): string {
               {{ e.origin === 'clinic' ? t('appointments.origin.clinic') : t('appointments.origin.app') }}
             </p>
           </div>
-          <BaseBadge :tone="statusTone(e.status)">{{ statusLabel(e.status) }}</BaseBadge>
-          <!-- Reversible. A tap on the wrong row is the commonest thing that
-               will happen on this page, and the only way back must not be a
-               phone call to the administrator. -->
-          <BaseButton v-if="e.isDone" variant="ghost" size="sm" @click="undo(e)">
-            {{ t('queue.undo') }}
-          </BaseButton>
-          <BaseButton v-else-if="e.id !== q.queue.value.current?.id" variant="ghost" size="sm" @click="seen(e)">
-            {{ t('queue.markSeen') }}
-          </BaseButton>
+          <!-- Each row says where the person is and offers the one next tap
+               that fits it. Every tap has its undo beside it: a tap on the
+               wrong row is the commonest thing that will happen here, and the
+               way back must not be a phone call to the administrator. -->
+          <!-- Its own line on a phone, so the name is not cut short. -->
+          <div class="flex items-center gap-2 max-sm:w-full max-sm:ps-9">
+            <template v-if="e.isDone">
+              <BaseBadge :tone="statusTone(e.status)">{{ statusLabel(e.status) }}</BaseBadge>
+              <BaseButton variant="ghost" size="sm" @click="undo(e)">{{ t('queue.undo') }}</BaseButton>
+            </template>
+            <template v-else-if="e.isPresent">
+              <BaseBadge tone="info">{{ t('queue.arrivedAt', { time: formatTime(e.arrivedAt) }) }}</BaseBadge>
+              <BaseButton v-if="e.id !== q.queue.value.current?.id" size="sm" @click="seen(e)">
+                {{ t('queue.markSeen') }}
+              </BaseButton>
+              <BaseButton variant="ghost" size="sm" @click="notArrived(e)">{{ t('queue.undo') }}</BaseButton>
+            </template>
+            <template v-else>
+              <BaseBadge tone="warning">{{ t('queue.notArrivedBadge') }}</BaseBadge>
+              <BaseButton size="sm" @click="arrived(e)">{{ t('queue.markArrived') }}</BaseButton>
+              <BaseButton variant="ghost" size="sm" @click="absent(e)">{{ t('queue.markAbsent') }}</BaseButton>
+            </template>
+          </div>
         </div>
       </div>
     </div>

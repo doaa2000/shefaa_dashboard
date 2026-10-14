@@ -118,6 +118,21 @@ export const useAppointmentStore = defineStore('appointments', () => {
     return false
   }
 
+  /** Marks one booking as here, or takes it back, and keeps the day in step. */
+  async function setDayArrived(id: number, arrived: boolean): Promise<boolean> {
+    const result = await service.update(id, {
+      arrivedAt: arrived ? new Date().toISOString() : null,
+    })
+    if (isOk(result)) {
+      const idx = day.value.findIndex((a) => a.id === id)
+      if (idx >= 0) day.value[idx] = result.value
+      patchLocal(result.value)
+      return true
+    }
+    error.value = result.error
+    return false
+  }
+
   /** What the doctor is offering on one date. Cleared first, so a slow answer
    *  for a new date cannot be read as the answer for the old one. */
   async function fetchWindows(date: string): Promise<void> {
@@ -160,6 +175,7 @@ export const useAppointmentStore = defineStore('appointments', () => {
     fetchList,
     fetchDay,
     setDayStatus,
+    setDayArrived,
     update,
     setStatus,
     remove,

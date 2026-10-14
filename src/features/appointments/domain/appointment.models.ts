@@ -26,6 +26,9 @@ export interface Appointment {
    *  session is cut into appointments and this is a time to be there at. The
    *  two queue differently. */
   wholeSession: boolean
+  /** When the desk marked the patient as here. Null until they are -- and for
+   *  every booking from before the clinic could record it. */
+  arrivedAt: string | null
 }
 
 /** An appointment with the place it holds in the day's queue. */
@@ -43,6 +46,8 @@ export interface QueueEntry extends Appointment {
   isDone: boolean
   /** Still to be seen. */
   isWaiting: boolean
+  /** Here, and still to be seen: in the room's queue. */
+  isPresent: boolean
 }
 
 /**
@@ -66,22 +71,22 @@ export interface QueueWindow {
 /**
  * The whole day, read as a queue.
  *
- * `current` is inferred, not recorded: it is the first booking nobody has
- * marked as seen, absent or cancelled. That makes it only as true as the
- * clinic's marking -- which is why the page puts "seen" under one tap rather
- * than behind a dropdown. Until there is an arrival time on the booking, this
- * is the best the data supports, and the page says so rather than implying
- * the system knows who is in the room.
+ * The queue is the people the desk has marked as here and not yet seen, in
+ * booking order. Somebody who booked first but is still on the road holds
+ * nobody up, and takes their place among those waiting when they arrive.
  */
 export interface DayQueue {
   date: string
   windows: QueueWindow[]
-  /** Who the clinic is with now, as far as the marking says. */
+  /** The patient whose turn it is: the first of those present. */
   current: QueueEntry | null
-  /** Who follows them. */
+  /** Who follows them, among those present. */
   next: QueueEntry | null
   seen: number
-  waiting: number
+  /** Here and waiting. */
+  present: number
+  /** Booked, not seen, and not here yet. */
+  notArrived: number
   absent: number
   /** Everyone still to be seen, in order, across every window of the day. */
   remaining: QueueEntry[]
@@ -112,6 +117,8 @@ export interface UpdateAppointmentInput {
   startTime?: string
   endTime?: string
   status?: string
+  /** An ISO time to mark them arrived, or null to take it back. */
+  arrivedAt?: string | null
 }
 
 /**
