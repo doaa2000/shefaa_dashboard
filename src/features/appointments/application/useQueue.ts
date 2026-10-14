@@ -44,10 +44,10 @@ export function useQueue() {
    * this morning is not part of today's room, and leaving it on the screen
    * makes a list of six look like a list of nine.
    *
-   * `current` is the first booking nobody has marked. It is an inference and
-   * the page says so: until an arrival time is recorded, nothing in the data
-   * knows who is actually in the room, and the alternative -- showing nothing
-   * -- helps nobody.
+   * `current` is the first of those the desk has marked as here and who have
+   * not been seen, in booking order. Somebody who booked first and is still on
+   * the road holds nobody up; when they arrive they slot in among those
+   * waiting by their place in the booking order.
    */
   const queue = computed<DayQueue>(() => {
     const live = day.value.filter((a) => a.status !== CANCELLED)
@@ -61,6 +61,7 @@ export function useQueue() {
       position: i + 1,
       isDone: isDone(a),
       isWaiting: !isDone(a),
+      isPresent: !isDone(a) && a.arrivedAt !== null,
     }))
 
     const windows: QueueWindow[] = []
@@ -91,15 +92,17 @@ export function useQueue() {
     }
 
     const remaining = entries.filter((e) => e.isWaiting)
+    const present = entries.filter((e) => e.isPresent)
 
     return {
       date: date.value,
       windows,
-      current: remaining[0] ?? null,
-      next: remaining[1] ?? null,
+      current: present[0] ?? null,
+      next: present[1] ?? null,
       seen: entries.filter((e) => e.status === SEEN).length,
+      present: present.length,
+      notArrived: remaining.length - present.length,
       absent: entries.filter((e) => e.status === ABSENT).length,
-      waiting: remaining.length,
       remaining,
     }
   })
@@ -125,6 +128,9 @@ export function useQueue() {
   const markAbsent = (id: number) => store.setDayStatus(id, ABSENT)
   /** Undo, for the tap that landed on the wrong row. */
   const markWaiting = (id: number) => store.setDayStatus(id, 'confirmed')
+  /** The desk's one other tap: they are here. And its undo. */
+  const markArrived = (id: number) => store.setDayArrived(id, true)
+  const markNotArrived = (id: number) => store.setDayArrived(id, false)
 
   return {
     date,
@@ -138,5 +144,7 @@ export function useQueue() {
     markSeen,
     markAbsent,
     markWaiting,
+    markArrived,
+    markNotArrived,
   }
 }

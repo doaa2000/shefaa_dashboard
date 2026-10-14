@@ -31,6 +31,8 @@ export function toAppointment(row: BookingRow): Appointment {
     endTime: row.end_time,
     status: row.status ?? 'pending',
     createdAt: row.created_at,
+    // Undefined, not null, until migration 0068 has run; both mean "not here".
+    arrivedAt: row.arrived_at ?? null,
   }
 }
 
@@ -42,5 +44,6 @@ export function toUpdate(input: UpdateAppointmentInput): TablesUpdate<'bookings'
   if (input.startTime !== undefined) patch.start_time = input.startTime
   if (input.endTime !== undefined) patch.end_time = input.endTime
   if (input.status !== undefined) patch.status = input.status
+  if (input.arrivedAt !== undefined) patch.arrived_at = input.arrivedAt
   return patch
 }

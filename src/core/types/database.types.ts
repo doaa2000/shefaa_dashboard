@@ -116,6 +116,8 @@ export interface Database {
           // False: the session is cut into appointments and this is a time to
           // be there at. The queue is ordered differently for each.
           whole_session: boolean
+          /** When the desk marked them arrived; null until then (0068). */
+          arrived_at: string | null
         }
         Insert: {
           id?: number
@@ -134,6 +136,7 @@ export interface Database {
           walk_in_name?: string | null
           walk_in_phone?: string | null
           whole_session?: boolean
+          arrived_at?: string | null
         }
         Update: Partial<Database['public']['Tables']['bookings']['Insert']>
         Relationships: [
