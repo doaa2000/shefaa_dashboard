@@ -6,6 +6,7 @@ import type {
   UpdateScheduleInput,
   ScheduleClosure,
   CreateClosureInput,
+  BookedInClosure,
 } from './schedule.models'
 
 export interface IScheduleRepository {
@@ -35,12 +36,12 @@ export interface IScheduleRepository {
   ): Promise<Result<ScheduleClosure, AppError>>
   removeClosure(id: number): Promise<Result<void, AppError>>
 
-  /** How many bookings already sit on that date -- the whole date when the
-   *  session is null. Closing a day does not tell anybody, so the doctor needs
-   *  to know who they are about to leave standing at the door. */
+  /** Who is booked on that date -- the whole date when the session is null --
+   *  and so will be cancelled by closing it (migration 0064). Asked first, so
+   *  the doctor confirms knowing how many people that is. */
   countBookingsOn(
     doctorId: number,
     date: string,
     session: string | null,
-  ): Promise<Result<number, AppError>>
+  ): Promise<Result<BookedInClosure, AppError>>
 }

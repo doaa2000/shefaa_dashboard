@@ -7,6 +7,7 @@ import type {
   UpdateScheduleInput,
   ScheduleClosure,
   CreateClosureInput,
+  BookedInClosure,
 } from '../domain/schedule.models'
 
 export class ScheduleService {
@@ -54,7 +55,7 @@ export class ScheduleService {
     doctorId: number,
     date: string,
     session: string | null,
-  ): Promise<Result<number, AppError>> {
+  ): Promise<Result<BookedInClosure, AppError>> {
     return this.repo.countBookingsOn(doctorId, date, session)
   }
 }

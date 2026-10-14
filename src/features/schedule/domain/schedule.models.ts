@@ -164,6 +164,14 @@ export interface CreateClosureInput {
   reason: string | null
 }
 
+/** Who is booked into what a closure would close. Closing cancels all of them;
+ *  the ones with an app account are told by notification, and the ones the
+ *  clinic wrote down by name and telephone are not, so the clinic calls them. */
+export interface BookedInClosure {
+  notified: number
+  toCall: number
+}
+
 /** The whole day, or one of the two sessions. */
 export const WHOLE_DAY = 'day'
 

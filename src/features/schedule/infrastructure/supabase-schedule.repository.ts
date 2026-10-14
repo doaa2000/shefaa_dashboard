@@ -9,6 +9,7 @@ import type {
   UpdateScheduleInput,
   ScheduleClosure,
   CreateClosureInput,
+  BookedInClosure,
 } from '../domain/schedule.models'
 
 function toEntry(row: Tables<'doctor_schedule'>): ScheduleEntry {
@@ -205,20 +206,25 @@ export class SupabaseScheduleRepository implements IScheduleRepository {
     doctorId: number,
     date: string,
     session: string | null,
-  ): Promise<Result<number, AppError>> {
+  ): Promise<Result<BookedInClosure, AppError>> {
     try {
+      // The same rows the closure trigger cancels: still waiting, not seen,
+      // not marked absent, not already cancelled.
       let q = this.client
         .from('bookings')
-        .select('id', { count: 'exact', head: true })
+        .select('patient_id')
         .eq('doctor_id', doctorId)
         .eq('booked_date', date)
-        // A cancelled booking is nobody waiting at the door.
-        .neq('status', 'cancelled')
+        .in('status', ['pending', 'confirmed'])
       if (session) q = q.eq('session', session)
 
-      const { count, error } = await q
+      const { data, error } = await q
       if (error) return err(normalizeError(error))
-      return ok(count ?? 0)
+      const rows = data ?? []
+      // A booking with a patient account is told by notification. One the
+      // clinic took by telephone has only a name and a number.
+      const notified = rows.filter((r) => r.patient_id !== null).length
+      return ok({ notified, toCall: rows.length - notified })
     } catch (e) {
       return err(normalizeError(e))
     }
