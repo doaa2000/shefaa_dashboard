@@ -14,7 +14,7 @@ const tones: Record<ToastVariant, string> = {
 </script>
 
 <template>
-  <div class="pointer-events-none fixed bottom-4 end-4 z-[60] flex w-full max-w-sm flex-col gap-2">
+  <div class="pointer-events-none fixed inset-x-4 bottom-4 z-[60] flex flex-col gap-2 sm:inset-x-auto sm:end-4 sm:w-full sm:max-w-sm">
     <TransitionGroup name="toast">
       <div
         v-for="item in toasts"
@@ -27,6 +27,13 @@ const tones: Record<ToastVariant, string> = {
             <p class="text-sm font-semibold">{{ item.title }}</p>
             <p v-if="item.description" class="mt-0.5 text-sm opacity-80">{{ item.description }}</p>
           </div>
+          <button
+            v-if="item.action"
+            class="shrink-0 rounded-lg px-2 py-0.5 text-sm font-semibold underline underline-offset-2 hover:bg-white/60"
+            @click="item.action.run(); dismiss(item.id)"
+          >
+            {{ item.action.label }}
+          </button>
           <button class="opacity-50 hover:opacity-100" :aria-label="t('common.dismiss')" @click="dismiss(item.id)">
             <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" d="M6 6l12 12M6 18L18 6" />
