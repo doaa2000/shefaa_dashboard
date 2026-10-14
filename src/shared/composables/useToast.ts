@@ -8,6 +8,8 @@ export interface Toast {
   title: string
   description?: string
   duration: number
+  /** One button on the toast, for the action that undoes what it reports. */
+  action?: { label: string; run: () => void }
 }
 
 // Module-level singleton store so any component can push toasts.
@@ -50,5 +52,9 @@ export function useToast() {
     error: (title: string, description?: string) => push({ variant: 'error', title, description }),
     info: (title: string, description?: string) => push({ variant: 'info', title, description }),
     warning: (title: string, description?: string) => push({ variant: 'warning', title, description }),
+    /** A confirmation with its undo on it. Longer than the others, so there is
+     *  time to notice the wrong row was tapped. */
+    withUndo: (title: string, label: string, run: () => void) =>
+      push({ variant: 'success', title, duration: 6000, action: { label, run } }),
   }
 }
