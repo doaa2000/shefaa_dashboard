@@ -69,7 +69,8 @@ export const en = {
     resetSubtitle: "We'll email you a secure reset link",
     sendResetLink: 'Send reset link',
     backToSignIn: 'Back to sign in',
-    resetSentBody: 'If an account exists for that email, a reset link is on its way.',
+    resetSentBody:
+      'If an account exists for that email, we sent it a link to set a new password. Open it in this same browser, and check your spam folder if it is not in your inbox.',
     toast: {
       doctorsOnly: 'This dashboard is for doctors',
       signInFailed: 'Sign in failed',
@@ -78,7 +79,7 @@ export const en = {
       welcome: 'Welcome to Shefaa.',
       registrationFailed: 'Registration failed',
       checkInbox: 'Check your inbox',
-      resetSent: 'We sent you a reset link.',
+      resetSent: 'If an account exists for that email, we sent it a reset link.',
       resetFailed: 'Could not send reset link',
     },
     chooseTitle: 'Choose a password',
@@ -93,6 +94,18 @@ export const en = {
     changed: 'Password changed',
     changedBody: 'Use the new one from now on.',
     changeFailed: 'Could not change the password',
+    newPasswordTitle: 'Set a new password',
+    newPasswordSubtitle: 'Choose a new password for your account.',
+    checkingLink: 'Checking the link…',
+    linkExpiredTitle: 'This link has expired',
+    linkExpiredBody:
+      'A password reset link works once and for a limited time. Request a new one and open the latest email you receive.',
+    linkInvalidTitle: 'This link did not work',
+    linkInvalidBody:
+      'The reset link could not be verified. It may have been used already, or opened in a different browser from the one it was requested in. Request a new one and open it in the same browser.',
+    requestNewLink: 'Request a new link',
+    passwordReset: 'Your new password is set',
+    passwordResetBody: 'You are signed in. Use it from now on.',
   },
   dashboard: {
     greeting: 'Welcome back, {name}',

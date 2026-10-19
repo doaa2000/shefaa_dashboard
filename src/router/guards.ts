@@ -9,12 +9,18 @@ import { t } from '@/app/i18n'
  *  - redirects authenticated users away from public (auth) routes
  *  - holds a doctor on the change-password screen while their password is one
  *    an admin handed them
+ *  - leaves the reset-password screen alone, whoever is or is not signed in
  *  - sets the document title from route meta
  */
 export function registerGuards(router: Router): void {
   router.beforeEach(async (to) => {
     const auth = useAuthStore()
     if (!auth.initialized) await auth.initialize()
+
+    // The page an emailed reset link lands on, which is reached both signed
+    // in and not, and must not be taken away from before the password is set.
+    // See its route.
+    if (to.meta.recovery === true) return true
 
     const isPublic = to.meta.public === true
 
