@@ -1,4 +1,5 @@
 import { intlLocale, t } from '@/app/i18n'
+import { offeredWindows } from './schedule.plan'
 
 /**
  * A doctor's working week, backed by `doctor_schedule`.
@@ -16,9 +17,9 @@ export interface ScheduleEntry {
   startTime: string
   endTime: string
   /**
-   * How many patients the doctor takes in this session. Entered directly: a
-   * dentist whose list mixes a short check with a long scaling knows their own
-   * number better than an average visit length would predict it.
+   * How many patients the day holds. Typed by the doctor when booking by
+   * queue; with fixed appointments it is the number of appointments, one place
+   * each, because the database spreads it across them (see planRow).
    */
   capacity: number
   /**
@@ -44,11 +45,11 @@ export type UpdateScheduleInput = Partial<CreateScheduleInput>
 
 /**
  * Only the two the database accepts. The old list offered "Afternoon", which
- * the session CHECK constraint rejects — picking it failed on save.
+ * the session CHECK constraint rejects -- picking it failed on save.
+ *
+ * The working-hours form no longer asks: the session follows from the start
+ * hour (sessionFor). A clinic booking and a closure still name one.
  */
-/** The select value that stands for "do not cut this session up at all". */
-export const WHOLE_SESSION = 'whole'
-
 export function sessionOptions(): { label: string; value: string }[] {
   return [
     { label: t('session.morning'), value: 'morning' },
@@ -56,50 +57,17 @@ export function sessionOptions(): { label: string; value: string }[] {
   ]
 }
 
-/**
- * How the session is offered to patients. "Whole session" is one window from
- * start to end: the patient is told when to arrive and the clinic works through
- * everyone in arrival order. A length cuts the session into appointments, for a
- * doctor who really does run to a clock.
- *
- * The values are strings because the select element only carries strings, and
- * because null -- the value that matters most here -- cannot be one of them.
- */
-export function slotOptions(): { label: string; value: string }[] {
-  return [
-    { label: t('settings.wholeSession'), value: WHOLE_SESSION },
-    { label: t('settings.minutes', { count: 15 }), value: '15' },
-    { label: t('settings.minutes', { count: 20 }), value: '20' },
-    { label: t('settings.minutes', { count: 30 }), value: '30' },
-    { label: t('settings.oneHour'), value: '60' },
-  ]
-}
+/** The shortest and longest appointment the form takes. */
+export const MIN_LENGTH = 5
+export const MAX_LENGTH = 240
 
-export function toSlotMinutes(value: string): number | null {
-  return value === WHOLE_SESSION ? null : Number(value)
-}
-
-export function fromSlotMinutes(minutes: number | null): string {
-  return minutes === null ? WHOLE_SESSION : String(minutes)
-}
-
-/** What the patient will be offered, in words. */
-export function slotLabel(entry: ScheduleEntry): string {
-  if (entry.slotMinutes === null) return t('settings.oneWindow')
-  return t('settings.slotSplit', {
-    count: windowCount(entry),
+/** What the patient is offered on this day, in a few words for the week list. */
+export function rowSummary(entry: ScheduleEntry): string {
+  if (entry.slotMinutes === null) return t('schedule.rowQueue', { count: entry.capacity })
+  return t('schedule.rowSlots', {
+    count: offeredWindows(entry).length,
     minutes: entry.slotMinutes,
   })
-}
-
-/** How many appointments the session is cut into. */
-export function windowCount(entry: ScheduleEntry): number {
-  if (entry.slotMinutes === null) return 1
-  const [sh, sm] = entry.startTime.split(':').map(Number)
-  const [eh, em] = entry.endTime.split(':').map(Number)
-  const minutes = eh * 60 + em - (sh * 60 + sm)
-  if (minutes <= 0) return 1
-  return Math.max(Math.ceil(minutes / entry.slotMinutes), 1)
 }
 
 /**
@@ -120,6 +88,13 @@ export function timeLabel(value: string): string {
   }).format(at)
 }
 
+/** Days named together the way the language joins them: "الأحد والإثنين". */
+export function dayList(weekdays: number[]): string {
+  return new Intl.ListFormat(intlLocale(), { type: 'conjunction' }).format(
+    weekdays.map(weekdayLabel),
+  )
+}
+
 export function weekdayOptions(): { label: string; value: number }[] {
   return [0, 1, 2, 3, 4, 5, 6].map((value) => ({ label: weekdayLabel(value), value }))
 }
@@ -128,16 +103,6 @@ export function weekdayLabel(weekday: number): string {
   const key = `weekday.${weekday}`
   const translated = t(key)
   return translated === key ? String(weekday) : translated
-}
-
-/** Rough minutes per patient, so the doctor can sanity-check a capacity. */
-export function minutesPerPatient(entry: ScheduleEntry): number | null {
-  if (!entry.startTime || !entry.endTime || entry.capacity <= 0) return null
-  const [sh, sm] = entry.startTime.split(':').map(Number)
-  const [eh, em] = entry.endTime.split(':').map(Number)
-  const minutes = eh * 60 + em - (sh * 60 + sm)
-  if (minutes <= 0) return null
-  return Math.round(minutes / entry.capacity)
 }
 
 /**

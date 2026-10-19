@@ -10,6 +10,7 @@ import type {
   UpdateScheduleInput,
 } from '../domain/schedule.models'
 import { weekdayOptions } from '../domain/schedule.models'
+import { planRow } from '../domain/schedule.plan'
 import type {
   ScheduleClosure,
   CreateClosureInput,
@@ -61,23 +62,62 @@ export const useScheduleStore = defineStore('schedules', () => {
   )
 
   /**
+   * The days whose hours would not hold one appointment of this length, and
+   * so cannot be switched to it. Asked before saving, so the doctor is told
+   * which days to fix instead of finding half the week changed.
+   */
+  function rowsTooShortFor(slotMinutes: number): ScheduleEntry[] {
+    return items.value.filter(
+      (e) => planRow(e.startTime, e.endTime, slotMinutes, e.capacity) === null,
+    )
+  }
+
+  /**
    * Writes one answer across the whole week.
    *
    * Every row, not the active ones: a paused day resumed next month would
    * otherwise come back running on the arrangement the clinic has left behind.
+   *
+   * By queue it is the one column, written at once. A length is more than
+   * that: each day's capacity becomes its number of appointments and its end
+   * moves to where the last whole one finishes (planRow), or the database
+   * would spread the old patient count over the new appointments and drop the
+   * ones it ran out for. That is a different value per row, so the rows are
+   * written one by one; one that fails leaves the week mixed, which the card
+   * already says and offers to settle.
    */
   async function setBookingMode(slotMinutes: number | null): Promise<boolean> {
     if (!auth.doctorId) return false
     saving.value = true
     error.value = null
-    const result = await service.setBookingMode(auth.doctorId, slotMinutes)
-    saving.value = false
-    if (isOk(result)) {
-      items.value = result.value
-      return true
+
+    if (slotMinutes === null) {
+      const result = await service.setBookingMode(auth.doctorId, null)
+      saving.value = false
+      if (isOk(result)) {
+        items.value = result.value
+        return true
+      }
+      error.value = result.error
+      return false
     }
-    error.value = result.error
-    return false
+
+    for (const entry of items.value) {
+      const row = planRow(entry.startTime, entry.endTime, slotMinutes, entry.capacity)
+      if (!row) continue
+      const result = await service.update(entry.id, {
+        slotMinutes,
+        capacity: row.capacity,
+        endTime: row.endTime,
+      })
+      if (isOk(result)) {
+        items.value = items.value.map((e) => (e.id === entry.id ? result.value : e))
+      } else {
+        error.value = result.error
+      }
+    }
+    saving.value = false
+    return error.value === null
   }
 
   async function fetchList(): Promise<void> {
@@ -90,18 +130,33 @@ export const useScheduleStore = defineStore('schedules', () => {
     else error.value = result.error
   }
 
-  async function create(input: CreateScheduleInput): Promise<boolean> {
-    if (!auth.doctorId) return false
+  /**
+   * The same hours on several days, one row each.
+   *
+   * One at a time and carrying on past a failure: a doctor adding Sunday to
+   * Thursday whose Tuesday is refused should still get the other four, and be
+   * told which one did not go in and why.
+   */
+  async function createMany(
+    weekdays: number[],
+    input: Omit<CreateScheduleInput, 'weekday'>,
+  ): Promise<{ added: number[]; failed: { weekday: number; error: AppError }[] }> {
+    const added: number[] = []
+    const failed: { weekday: number; error: AppError }[] = []
+    if (!auth.doctorId) return { added, failed }
     saving.value = true
     error.value = null
-    const result = await service.create(auth.doctorId, input)
-    saving.value = false
-    if (isOk(result)) {
-      items.value = [...items.value, result.value]
-      return true
+    for (const weekday of weekdays) {
+      const result = await service.create(auth.doctorId, { ...input, weekday })
+      if (isOk(result)) {
+        items.value = [...items.value, result.value]
+        added.push(weekday)
+      } else {
+        failed.push({ weekday, error: result.error })
+      }
     }
-    error.value = result.error
-    return false
+    saving.value = false
+    return { added, failed }
   }
 
   async function update(id: number, input: UpdateScheduleInput): Promise<boolean> {
@@ -181,6 +236,7 @@ export const useScheduleStore = defineStore('schedules', () => {
     bookingMode,
     bookingModeMixed,
     setBookingMode,
+    rowsTooShortFor,
     closures,
     fetchClosures,
     addClosure,
@@ -193,7 +249,7 @@ export const useScheduleStore = defineStore('schedules', () => {
     saving,
     error,
     fetchList,
-    create,
+    createMany,
     update,
     toggleActive,
     remove,
