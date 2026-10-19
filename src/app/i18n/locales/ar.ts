@@ -108,7 +108,6 @@ export const ar: Messages = {
     title: 'الطابور',
     tally: '{here} وصلوا · {toCome} لم يصلوا · {seen} تم الكشف',
     finished: 'انتهوا',
-    more: 'المزيد',
     date: 'اليوم',
     backToToday: 'العودة إلى اليوم',
     present: 'وصلوا وينتظرون',

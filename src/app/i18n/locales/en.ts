@@ -106,7 +106,6 @@ export const en = {
     title: 'Queue',
     tally: '{here} here · {toCome} not here yet · {seen} seen',
     finished: 'Done',
-    more: 'More',
     date: 'Day',
     backToToday: 'Back to today',
     present: 'Here and waiting',
