@@ -1,9 +1,30 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast, type ToastVariant } from '@/shared/composables/useToast'
 
 const { toasts, dismiss } = useToast()
 const { t } = useI18n()
+
+/**
+ * Two stacks. A toast with an undo on it goes at the top, under the bar,
+ * where the eye already is after a tap: in the bottom corner it was gone
+ * again before the desk, watching the top of the queue, ever saw it -- and an
+ * undo nobody sees is no undo. Everything else keeps the corner, where it
+ * stays out of the way.
+ */
+const stacks = computed(() => [
+  {
+    key: 'undoable',
+    items: toasts.value.filter((item) => item.action),
+    place: 'inset-x-4 top-20 sm:inset-x-0 sm:mx-auto sm:w-full sm:max-w-md',
+  },
+  {
+    key: 'notices',
+    items: toasts.value.filter((item) => !item.action),
+    place: 'inset-x-4 bottom-4 sm:inset-x-auto sm:end-4 sm:w-full sm:max-w-sm',
+  },
+])
 
 const tones: Record<ToastVariant, string> = {
   success: 'border-emerald-200 bg-emerald-50 text-emerald-800',
@@ -14,10 +35,14 @@ const tones: Record<ToastVariant, string> = {
 </script>
 
 <template>
-  <div class="pointer-events-none fixed inset-x-4 bottom-4 z-[60] flex flex-col gap-2 sm:inset-x-auto sm:end-4 sm:w-full sm:max-w-sm">
+  <div
+    v-for="stack in stacks"
+    :key="stack.key"
+    :class="['pointer-events-none fixed z-[60] flex flex-col gap-2', stack.place]"
+  >
     <TransitionGroup name="toast">
       <div
-        v-for="item in toasts"
+        v-for="item in stack.items"
         :key="item.id"
         :class="['pointer-events-auto rounded-xl border px-4 py-3 shadow-card', tones[item.variant]]"
         role="alert"

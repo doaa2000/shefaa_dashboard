@@ -71,17 +71,21 @@ export interface QueueWindow {
 /**
  * The whole day, read as a queue.
  *
- * The queue is the people the desk has marked as here and not yet seen, in
- * booking order. Somebody who booked first but is still on the road holds
- * nobody up, and takes their place among those waiting when they arrive.
+ * The queue is the people the desk has marked as here and not yet seen: by
+ * arrival in a session taken whole, by appointment time in one cut into
+ * appointments. Somebody who booked first but is still on the road holds
+ * nobody up.
  */
 export interface DayQueue {
   date: string
   windows: QueueWindow[]
-  /** The patient whose turn it is: the first of those present. */
+  /** The patient whose turn it is: the first of those present, and once
+   *  shown, kept until they are seen, marked absent, or taken back out. */
   current: QueueEntry | null
   /** Who follows them, among those present. */
   next: QueueEntry | null
+  /** Everyone present, in the order they go in: `current` first. */
+  inLine: QueueEntry[]
   seen: number
   /** Here and waiting. */
   present: number

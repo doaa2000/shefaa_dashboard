@@ -28,23 +28,16 @@ onUnmounted(() => clearInterval(timer))
 
 /**
  * Three lists, in the order the desk needs them: who is here (after whoever's
- * turn it is), who is still to come, and who is finished. Finished is folded
+ * turn it is, in the order they will go in), who is still to come, and who is
+ * finished. Finished is folded
  * away; it is only opened to put a mistake right.
  */
-const waitingHere = computed(() =>
-  q.queue.value.remaining.filter((e) => e.isPresent && e.id !== q.queue.value.current?.id),
-)
+const waitingHere = computed(() => q.queue.value.inLine.slice(1))
 const notHereYet = computed(() => q.queue.value.remaining.filter((e) => !e.isPresent))
 const finished = computed(() =>
   q.queue.value.windows.flatMap((w) => w.entries).filter((e) => e.isDone),
 )
 const showFinished = ref(false)
-
-/** The row whose second action is showing. One at a time keeps rows to one button. */
-const openMenu = ref<number | null>(null)
-function toggleMenu(id: number): void {
-  openMenu.value = openMenu.value === id ? null : id
-}
 
 const name = (e: QueueEntry) => q.nameOf(e) || t('queue.unnamed')
 
@@ -53,35 +46,69 @@ const name = (e: QueueEntry) => q.nameOf(e) || t('queue.unnamed')
 const timeOf = (e: QueueEntry) => (e.wholeSession ? '' : timeLabel(e.startTime.slice(0, 5)))
 
 /**
- * Every tap reports itself with its undo on the toast, so the rows carry one
- * button each instead of an undo beside every one.
+ * Every tap reports itself with its undo on the toast, so a tap on the wrong
+ * row is put right where the eye already is.
+ *
+ * Each undo puts back exactly what the tap changed: the status it had, the
+ * time they first arrived (so they keep their place in a queue run by
+ * arrival), and the turn, if the tap took it from them.
  */
 async function act(
   done: Promise<boolean>,
   message: string,
   undo: () => Promise<boolean>,
 ): Promise<void> {
-  openMenu.value = null
-  if (await done) toast.withUndo(message, t('queue.undo'), () => void undo())
-  else if (q.error.value) toast.error(t('queue.failed'), q.error.value.message)
+  if (await done) toast.withUndo(message, t('queue.undo'), () => void undone(undo()))
+  else failed()
+}
+
+async function undone(done: Promise<boolean>): Promise<void> {
+  if (!(await done)) failed()
+}
+
+function failed(): void {
+  if (q.error.value) toast.error(t('queue.failed'), q.error.value.message)
+}
+
+const isCurrent = (e: QueueEntry) => q.queue.value.current?.id === e.id
+
+/** An undo that hands the turn back to whoever the tap took it from. */
+async function regain(done: Promise<boolean>, e: QueueEntry, hadTurn: boolean): Promise<boolean> {
+  const ok = await done
+  if (ok && hadTurn) q.pin(e.id)
+  return ok
 }
 
 const arrived = (e: QueueEntry) =>
   act(q.markArrived(e.id), t('queue.markedArrived', { name: name(e) }), () =>
     q.markNotArrived(e.id),
   )
-const notArrived = (e: QueueEntry) =>
-  act(q.markNotArrived(e.id), t('queue.unmarkedArrived', { name: name(e) }), () =>
-    q.markArrived(e.id),
+function notArrived(e: QueueEntry): Promise<void> {
+  const { arrivedAt } = e
+  const hadTurn = isCurrent(e)
+  return act(q.markNotArrived(e.id), t('queue.unmarkedArrived', { name: name(e) }), () =>
+    regain(q.markArrived(e.id, arrivedAt ?? undefined), e, hadTurn),
   )
-const seen = (e: QueueEntry) =>
-  act(q.markSeen(e.id), t('queue.markedSeen', { name: name(e) }), () => q.markWaiting(e.id))
-const absent = (e: QueueEntry) =>
-  act(q.markAbsent(e.id), t('queue.markedAbsent', { name: name(e) }), () => q.markWaiting(e.id))
-const reopen = (e: QueueEntry) =>
-  act(q.markWaiting(e.id), t('queue.returned', { name: name(e) }), () =>
-    e.status === 'no_show' ? q.markAbsent(e.id) : q.markSeen(e.id),
+}
+function seen(e: QueueEntry): Promise<void> {
+  const { status } = e
+  const hadTurn = isCurrent(e)
+  return act(q.markSeen(e.id), t('queue.markedSeen', { name: name(e) }), () =>
+    regain(q.restoreStatus(e.id, status), e, hadTurn),
   )
+}
+function absent(e: QueueEntry): Promise<void> {
+  const { status } = e
+  return act(q.markAbsent(e.id), t('queue.markedAbsent', { name: name(e) }), () =>
+    q.restoreStatus(e.id, status),
+  )
+}
+function reopen(e: QueueEntry): Promise<void> {
+  const { status } = e
+  return act(q.markWaiting(e.id), t('queue.returned', { name: name(e) }), () =>
+    q.restoreStatus(e.id, status),
+  )
+}
 </script>
 
 <template>
@@ -137,6 +164,16 @@ const reopen = (e: QueueEntry) =>
         {{ t('queue.upNext') }}:
         <span class="font-medium text-slate-800">{{ name(q.queue.value.next) }}</span>
       </p>
+      <!-- The turn stays here until one of these. Marked here by mistake, or
+           gone out again, is the quiet one. -->
+      <BaseButton
+        variant="ghost"
+        size="sm"
+        class="mt-2"
+        @click="notArrived(q.queue.value.current)"
+      >
+        {{ t('queue.markNotArrived') }}
+      </BaseButton>
     </section>
 
     <section
@@ -181,24 +218,11 @@ const reopen = (e: QueueEntry) =>
               </p>
             </div>
             <BaseButton variant="outline" size="sm" @click="seen(e)">
-{{
-              t('queue.markSeen')
-            }}
-</BaseButton>
-            <button
-              class="rounded-lg px-2 py-1 text-slate-400 hover:bg-slate-100"
-              :aria-label="t('queue.more')"
-              @click="toggleMenu(e.id)"
-            >
-              ⋯
-            </button>
-          </div>
-          <div v-if="openMenu === e.id" class="mt-2 ps-10">
+              {{ t('queue.markSeen') }}
+            </BaseButton>
             <BaseButton variant="ghost" size="sm" @click="notArrived(e)">
-{{
-              t('queue.markNotArrived')
-            }}
-</BaseButton>
+              {{ t('queue.markNotArrived') }}
+            </BaseButton>
           </div>
         </li>
       </ul>
@@ -223,20 +247,12 @@ const reopen = (e: QueueEntry) =>
               </p>
             </div>
             <BaseButton size="sm" @click="arrived(e)">{{ t('queue.markArrived') }}</BaseButton>
-            <button
-              class="rounded-lg px-2 py-1 text-slate-400 hover:bg-slate-100"
-              :aria-label="t('queue.more')"
-              @click="toggleMenu(e.id)"
-            >
-              ⋯
-            </button>
-          </div>
-          <div v-if="openMenu === e.id" class="mt-2 ps-10">
+            <!-- In sight, not behind a menu: marking somebody who never came
+                 is part of closing every day, and a menu nobody opens is a
+                 button the desk does not have. -->
             <BaseButton variant="ghost" size="sm" @click="absent(e)">
-{{
-              t('queue.markAbsent')
-            }}
-</BaseButton>
+              {{ t('queue.markAbsent') }}
+            </BaseButton>
           </div>
         </li>
       </ul>
@@ -260,10 +276,8 @@ const reopen = (e: QueueEntry) =>
           <p class="min-w-0 flex-1 truncate text-slate-500">{{ name(e) }}</p>
           <span class="text-xs text-slate-400">{{ statusLabel(e.status) }}</span>
           <BaseButton variant="ghost" size="sm" @click="reopen(e)">
-{{
-            t('queue.undo')
-          }}
-</BaseButton>
+            {{ t('queue.undo') }}
+          </BaseButton>
         </li>
       </ul>
     </section>

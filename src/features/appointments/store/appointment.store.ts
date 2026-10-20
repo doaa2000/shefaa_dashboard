@@ -118,11 +118,10 @@ export const useAppointmentStore = defineStore('appointments', () => {
     return false
   }
 
-  /** Marks one booking as here, or takes it back, and keeps the day in step. */
-  async function setDayArrived(id: number, arrived: boolean): Promise<boolean> {
-    const result = await service.update(id, {
-      arrivedAt: arrived ? new Date().toISOString() : null,
-    })
+  /** Marks one booking as here at the given time, or takes it back with
+   *  null, and keeps the day in step. */
+  async function setDayArrived(id: number, arrivedAt: string | null): Promise<boolean> {
+    const result = await service.update(id, { arrivedAt })
     if (isOk(result)) {
       const idx = day.value.findIndex((a) => a.id === id)
       if (idx >= 0) day.value[idx] = result.value

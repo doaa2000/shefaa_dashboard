@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { useForm } from 'vee-validate'
@@ -7,22 +7,27 @@ import { toTypedSchema } from '@vee-validate/zod'
 import { useScheduleStore } from '../../store/schedule.store'
 import { scheduleSchema, type ScheduleFormValues } from '../../domain/schedule.schema'
 import {
-  sessionOptions,
   weekdayOptions,
-  WHOLE_SESSION,
-  minutesPerPatient,
-  slotLabel,
+  weekdayLabel,
+  dayList,
+  rowSummary,
   timeLabel,
-  windowCount,
   type ScheduleEntry,
 } from '../../domain/schedule.models'
+import {
+  conflictOn,
+  planRow,
+  planSlots,
+  rowMatchesLength,
+  sampleTimes,
+  type Conflict,
+} from '../../domain/schedule.plan'
 import { useToast } from '@/shared/composables/useToast'
 import { labelFor } from '@/shared/utils/formatters'
 import {
   BaseButton,
   BaseCard,
   BaseInput,
-  BaseSelect,
   BaseTimePicker,
   BaseBadge,
   FormField,
@@ -34,33 +39,61 @@ const toast = useToast()
 const { t } = useI18n()
 
 const weekdays = computed(() => weekdayOptions())
-const sessions = computed(() => sessionOptions())
 const { byWeekday, items, loading, saving, totalWeeklyCapacity } = storeToRefs(store)
 
-const DEFAULTS: Partial<ScheduleFormValues> = {
-  weekday: 0,
-  session: 'morning',
+/**
+ * How the clinic books is not asked here.
+ *
+ * It was, once per row, which made it a decision the doctor re-made every time
+ * they added a day and could answer differently each time without noticing --
+ * and left a patient to work out which arrangement applied before picking a
+ * day. It is one answer about the clinic now, given above this form, and a new
+ * day simply joins it. It also decides which one number this form asks for.
+ */
+const slotMinutes = computed(() => store.bookingMode)
+
+const DEFAULTS: ScheduleFormValues = {
+  weekdays: [],
   startTime: '09:00',
   endTime: '13:00',
-  capacity: 16,
-  slotMinutes: WHOLE_SESSION,
+  patients: 16,
   isActive: true,
 }
 
-const { defineField, handleSubmit, errors, resetForm } = useForm<ScheduleFormValues>({
-  // A computed schema, so the messages follow a language change instead of
-  // staying in whichever one the form was opened in.
-  validationSchema: computed(() => toTypedSchema(scheduleSchema())),
-  initialValues: DEFAULTS,
-})
+const { defineField, handleSubmit, errors, resetForm, setFieldError } =
+  useForm<ScheduleFormValues>({
+    // A computed schema, so the messages follow a language change, and the
+    // patients field is only required while the clinic books by queue.
+    validationSchema: computed(() => toTypedSchema(scheduleSchema(slotMinutes.value))),
+    initialValues: DEFAULTS,
+  })
 
-const [weekday] = defineField('weekday')
-const [session] = defineField('session')
+const [days] = defineField('weekdays')
 const [startTime] = defineField('startTime')
 const [endTime] = defineField('endTime')
-const [capacity, capacityAttrs] = defineField('capacity')
+const [patients, patientsAttrs] = defineField('patients')
 
-// Moving the start past the end would leave a session that ends before it
+/** The row being edited, or null while the form adds new days. */
+const editing = ref<ScheduleEntry | null>(null)
+const formEl = ref<HTMLElement | null>(null)
+
+/**
+ * Several days at once when adding: most clinics keep the same hours on four
+ * or five days, and adding them one by one was the same form filled in five
+ * times. Editing is one row, so a tap there moves it to another day instead.
+ */
+function toggleDay(value: number) {
+  const current = (days.value ?? []) as number[]
+  if (editing.value) {
+    days.value = [value]
+    return
+  }
+  days.value = current.includes(value)
+    ? current.filter((d) => d !== value)
+    : [...current, value].sort((a, b) => a - b)
+}
+
+// Moving the start past the end would leave a day that ends before it
 // begins. The picker refuses to set one, and this carries the end along.
 watch(startTime, (value) => {
   if (String(endTime.value ?? '') <= String(value ?? '')) {
@@ -79,68 +112,150 @@ function nextQuarter(from: string): string {
   )
 }
 
-/**
- * How the clinic books is not asked here.
- *
- * It was, once per row, which made it a decision the doctor re-made every time
- * they added a day and could answer differently each time without noticing --
- * and left a patient to work out which arrangement applied before picking a
- * day. It is one answer about the clinic now, given above this form, and a new
- * day simply joins it.
- */
-const inheritedSlotMinutes = computed(() => store.bookingMode)
+const clock = (value: string) => timeLabel(value.slice(0, 5))
 
 /**
- * What the doctor is about to create, in the same words the patient will read
- * it in. A form that only shows its inputs asks somebody to picture the result;
- * this says it.
+ * What the patient will be offered, in the words they will read it in, before
+ * anything is saved. The old line here was minutes per patient, which asked
+ * the doctor to picture the result; this lists it.
  */
 const preview = computed(() => {
-  const draft = {
-    startTime: String(startTime.value ?? ''),
-    endTime: String(endTime.value ?? ''),
-    capacity: Number(capacity.value ?? 0),
-    slotMinutes: inheritedSlotMinutes.value,
-  } as ScheduleEntry
+  const start = String(startTime.value ?? '')
+  const end = String(endTime.value ?? '')
+  if (!start || !end || end <= start) return null
 
-  if (!draft.startTime || !draft.endTime || draft.endTime <= draft.startTime) return null
+  const length = slotMinutes.value
+  if (length === null) {
+    const count = Number(patients.value ?? 0)
+    if (!Number.isInteger(count) || count < 1) return null
+    return { line: t('schedule.previewQueue', { count, from: clock(start), to: clock(end) }) }
+  }
 
-  const minutes = minutesPerPatient(draft)
-
+  const plan = planSlots(start, end, length)
+  if (plan.count === 0) return null
+  const { head, last } = sampleTimes(plan.starts)
+  const times = head.map(clock).join(t('schedule.timesSep')) + (last ? ` … ${clock(last)}` : '')
   return {
-    windows: windowCount(draft),
-    split: draft.slotMinutes !== null,
-    length: draft.slotMinutes,
-    capacity: draft.capacity,
-    minutes,
+    line: t('schedule.previewSlots', { count: plan.count, times }),
+    // Said only when it applies: the minutes after the last whole
+    // appointment are not offered, and the day is saved to end there.
+    leftover:
+      plan.leftover > 0
+        ? t('schedule.previewLeftover', {
+            end: clock(plan.lastEnd),
+            minutes: plan.leftover,
+            to: clock(end),
+          })
+        : null,
   }
 })
+
+/** The day's existing hours as the sentence a refusal quotes. */
+function describe(id: number): string {
+  const e = items.value.find((x) => x.id === id)
+  return e ? `${clock(e.startTime)} – ${clock(e.endTime)}` : ''
+}
+
+/** Every chosen day these hours cannot go on, worded per day. */
+function conflictsFor(
+  chosen: number[],
+  row: { session: string; startTime: string; endTime: string },
+): string[] {
+  const out: string[] = []
+  for (const weekday of chosen) {
+    const c: Conflict | null = conflictOn(items.value, weekday, row, editing.value?.id)
+    if (!c) continue
+    out.push(
+      t(c.kind === 'sameSession' ? 'schedule.conflictSession' : 'schedule.conflictOverlap', {
+        day: weekdayLabel(weekday),
+        session: labelFor('session', row.session),
+        hours: describe(c.withId),
+      }),
+    )
+  }
+  return out
+}
+
+const conflicts = ref<string[]>([])
+
+function startEdit(entry: ScheduleEntry) {
+  editing.value = entry
+  conflicts.value = []
+  resetForm({
+    values: {
+      weekdays: [entry.weekday],
+      startTime: entry.startTime.slice(0, 5),
+      endTime: entry.endTime.slice(0, 5),
+      patients: entry.capacity,
+      isActive: entry.isActive,
+    },
+  })
+  formEl.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function cancelEdit() {
+  editing.value = null
+  conflicts.value = []
+  resetForm({ values: DEFAULTS })
+}
 
 onMounted(() => store.fetchList())
 
 const onSubmit = handleSubmit(async (values) => {
-  // The form carries the choice as a string because a select cannot hold null;
-  // the database holds null, which is what "one window" is.
-  const ok = await store.create({
-    ...values,
-    // Whatever the clinic runs on, not whatever this form happens to hold.
-    slotMinutes: inheritedSlotMinutes.value,
+  const row = planRow(
+    values.startTime,
+    values.endTime,
+    slotMinutes.value,
+    Number(values.patients ?? 0),
+  )
+  if (!row) {
+    setFieldError('endTime', t('validation.shorterThanSlot', { minutes: slotMinutes.value ?? 0 }))
+    return
+  }
+
+  // Said here, per day, rather than left to the unique index: "duplicate key
+  // value violates..." tells the doctor nothing, and an overlap between the
+  // two halves of a day is something the database would let through.
+  conflicts.value = conflictsFor(values.weekdays, row)
+  if (conflicts.value.length) return
+
+  if (editing.value) {
+    const ok = await store.update(editing.value.id, {
+      ...row,
+      weekday: values.weekdays[0],
+    })
+    if (ok) {
+      toast.success(t('schedule.dayUpdated'))
+      cancelEdit()
+    } else if (store.error) {
+      toast.error(t('schedule.updateFailed'), store.error.message)
+    }
+    return
+  }
+
+  const { added, failed } = await store.createMany(values.weekdays, {
+    ...row,
+    isActive: true,
   })
-  if (ok) {
-    toast.success(t('settings.sessionAdded'))
-    resetForm({ values: DEFAULTS })
-  } else if (store.error) {
-    // The unique index on (doctor, weekday, session) is the likely cause, and
-    // "duplicate key value violates..." tells the doctor nothing.
-    const duplicate = store.error.message?.includes('duplicate key')
-    toast.error(
-      t(duplicate ? 'settings.duplicateTitle' : 'settings.addFailed'),
-      duplicate ? t('settings.duplicateBody') : store.error.message,
+  if (added.length) {
+    toast.success(
+      t('schedule.daysAdded', { days: dayList(added) }),
     )
+  }
+  if (failed.length) {
+    toast.error(
+      t('schedule.daysFailed', { days: dayList(failed.map((f) => f.weekday)) }),
+      failed[0].error.message,
+    )
+    // What did go in leaves the selection; what did not stays, ready to retry.
+    days.value = failed.map((f) => f.weekday)
+  } else {
+    resetForm({ values: DEFAULTS })
   }
 })
 
 async function onRemove(entry: ScheduleEntry) {
+  if (editing.value?.id === entry.id) cancelEdit()
   if (await store.remove(entry.id)) toast.success(t('settings.sessionRemoved'))
 }
 
@@ -149,26 +264,38 @@ async function onToggle(entry: ScheduleEntry) {
     toast.success(t(entry.isActive ? 'settings.sessionPaused' : 'settings.sessionResumed'))
   }
 }
-
-function pace(entry: ScheduleEntry): string {
-  const minutes = minutesPerPatient(entry)
-  return minutes ? t('settings.perPatient', { minutes }) : ''
-}
 </script>
 
 <template>
   <div class="space-y-6">
-  <BaseCard :title="t('schedule.addTitle')" :subtitle="t('schedule.addSubtitle')">
+  <div ref="formEl">
+  <BaseCard
+    :title="t(editing ? 'schedule.editTitle' : 'schedule.addTitle')"
+    :subtitle="t(editing ? 'schedule.editSubtitle' : 'schedule.addSubtitle')"
+  >
     <form class="space-y-5" @submit="onSubmit">
-      <!-- When, in one row. These four are the easy part and are kept out of
-           the way of the one decision that is not. -->
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-4">
-        <FormField :label="t('settings.day')">
-          <BaseSelect v-model="weekday" :options="weekdays" :placeholder="undefined" />
-        </FormField>
-        <FormField :label="t('settings.session')">
-          <BaseSelect v-model="session" :options="sessions" :placeholder="undefined" />
-        </FormField>
+      <FormField
+        :label="t(editing ? 'settings.day' : 'schedule.daysField')"
+        :error="errors.weekdays"
+      >
+        <div class="flex flex-wrap gap-2">
+          <button
+            v-for="day in weekdays"
+            :key="day.value"
+            type="button"
+            class="h-9 rounded-full border px-4 text-sm transition-colors"
+            :class="(days ?? []).includes(day.value)
+              ? 'border-primary-600 bg-primary-600 text-white'
+              : 'border-surface-border bg-white text-slate-700 hover:bg-primary-50'"
+            :aria-pressed="(days ?? []).includes(day.value)"
+            @click="toggleDay(day.value)"
+          >
+            {{ day.label }}
+          </button>
+        </div>
+      </FormField>
+
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <FormField :label="t('settings.start')" :error="errors.startTime">
           <BaseTimePicker v-model="startTime" :invalid="!!errors.startTime" />
         </FormField>
@@ -180,21 +307,25 @@ function pace(entry: ScheduleEntry): string {
             :invalid="!!errors.endTime"
           />
         </FormField>
-      </div>
-
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <!-- The one number, and only by queue. With fixed appointments the
+             length set above decides how many there are. -->
         <FormField
+          v-if="slotMinutes === null"
           :label="t('settings.patients')"
-          :error="errors.capacity"
-          :hint="t('settings.patientsNote')"
+          :error="errors.patients"
         >
           <BaseInput
-            v-model="capacity"
-            v-bind="capacityAttrs"
+            v-model="patients"
+            v-bind="patientsAttrs"
             type="number"
             min="1"
-            :invalid="!!errors.capacity"
+            :invalid="!!errors.patients"
           />
+        </FormField>
+        <FormField v-else :label="t('schedule.lengthField')" :hint="t('schedule.lengthFromMode')">
+          <p class="flex h-10 items-center text-sm text-slate-700">
+            {{ t('settings.minutes', { count: slotMinutes }) }}
+          </p>
         </FormField>
       </div>
 
@@ -203,22 +334,31 @@ function pace(entry: ScheduleEntry): string {
         v-if="preview"
         class="rounded-2xl border border-primary-100 bg-primary-50/60 px-4 py-3"
       >
-        <p class="text-sm font-medium text-primary-900">{{ t('schedule.previewTitle') }}</p>
-        <p class="mt-1 text-sm text-slate-700">
-          {{
-            preview.split
-              ? t('schedule.previewSlots', { count: preview.windows, minutes: preview.length })
-              : t('schedule.previewWhole', { count: preview.capacity })
-          }}
+        <p class="text-sm text-slate-800">
+          <span class="font-medium text-primary-900">{{ t('schedule.previewTitle') }}</span>
+          {{ preview.line }}
         </p>
-        <p v-if="preview.minutes" class="mt-1 text-xs text-slate-500">
-          {{ t('settings.perPatient', { minutes: preview.minutes }) }}
-        </p>
+        <p v-if="preview.leftover" class="mt-1 text-xs text-slate-600">{{ preview.leftover }}</p>
       </div>
 
-      <BaseButton type="submit" block :loading="saving">{{ t('schedule.addSession') }}</BaseButton>
+      <ul
+        v-if="conflicts.length"
+        class="space-y-1 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800"
+      >
+        <li v-for="line in conflicts" :key="line">{{ line }}</li>
+      </ul>
+
+      <div class="flex flex-wrap gap-2">
+        <BaseButton type="submit" class="flex-1" :loading="saving">
+          {{ t(editing ? 'schedule.saveEdit' : 'schedule.addSession') }}
+        </BaseButton>
+        <BaseButton v-if="editing" type="button" variant="ghost" @click="cancelEdit">
+          {{ t('common.cancel') }}
+        </BaseButton>
+      </div>
     </form>
   </BaseCard>
+  </div>
 
   <BaseCard :title="t('schedule.weekTitle')" :subtitle="t('schedule.weekSubtitle')">
     <div>
@@ -251,15 +391,21 @@ function pace(entry: ScheduleEntry): string {
                   {{ labelFor('session', entry.session) }}
                 </BaseBadge>
                 <span class="text-sm text-slate-700">
-                  {{ timeLabel(entry.startTime.slice(0, 5)) }} –
-                  {{ timeLabel(entry.endTime.slice(0, 5)) }}
+                  {{ clock(entry.startTime) }} – {{ clock(entry.endTime) }}
                 </span>
-                <span class="text-sm text-slate-600">{{ t('settings.patientsCount', { count: entry.capacity }) }}</span>
-                <BaseBadge tone="neutral">{{ slotLabel(entry) }}</BaseBadge>
-                <span class="text-xs text-slate-400">{{ pace(entry) }}</span>
+                <span class="text-sm text-slate-600">{{ rowSummary(entry) }}</span>
+                <!-- A day saved before the length decided the count can be
+                     hiding appointments from patients. Saving it again from
+                     the edit form puts it right. -->
+                <BaseBadge v-if="!rowMatchesLength(entry)" tone="warning">
+                  {{ t('schedule.rowMismatch') }}
+                </BaseBadge>
                 <BaseBadge v-if="!entry.isActive" tone="neutral">{{ t('settings.paused') }}</BaseBadge>
               </div>
               <div class="flex items-center gap-1">
+                <BaseButton size="sm" variant="ghost" @click="startEdit(entry)">
+                  {{ t('common.edit') }}
+                </BaseButton>
                 <BaseButton size="sm" variant="ghost" @click="onToggle(entry)">
                   {{ t(entry.isActive ? 'settings.pause' : 'settings.resume') }}
                 </BaseButton>

@@ -55,6 +55,6 @@ export function useToast() {
     /** A confirmation with its undo on it. Longer than the others, so there is
      *  time to notice the wrong row was tapped. */
     withUndo: (title: string, label: string, run: () => void) =>
-      push({ variant: 'success', title, duration: 6000, action: { label, run } }),
+      push({ variant: 'success', title, duration: 8000, action: { label, run } }),
   }
 }

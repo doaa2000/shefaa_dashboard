@@ -28,4 +28,16 @@ export const authRoutes: RouteRecordRaw[] = [
     component: () => import('./presentation/pages/ForgotPasswordPage.vue'),
     meta: { layout: 'auth', public: true, titleKey: 'nav.resetPassword' },
   },
+  {
+    // Neither public nor private. The emailed link signs the visitor in on
+    // the way here, so they arrive with a session that a public route would
+    // send on to the dashboard -- before the new password was ever set. And
+    // a link that did not work arrives with no session at all, which a
+    // private route would bounce to the login screen without saying why.
+    // The page itself tells the two apart.
+    path: '/reset-password',
+    name: 'reset-password',
+    component: () => import('./presentation/pages/ResetPasswordPage.vue'),
+    meta: { layout: 'auth', recovery: true, titleKey: 'auth.newPasswordTitle' },
+  },
 ]

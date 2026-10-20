@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useAppointmentStore } from '../store/appointment.store'
 import type {
@@ -31,11 +31,67 @@ function isDone(a: Appointment): boolean {
   return a.status === SEEN || a.status === ABSENT || a.status === CANCELLED
 }
 
+/** Milliseconds, for comparing two arrival times. Postgres and the browser
+ *  write the same instant in different shapes, so the strings cannot be
+ *  compared as they stand. */
+function arrivedMs(e: Appointment): number {
+  return e.arrivedAt ? Date.parse(e.arrivedAt) : Number.POSITIVE_INFINITY
+}
+
+/**
+ * Those present, in the order they go in.
+ *
+ * The two kinds of session promise different things. A session taken whole
+ * is first come, first seen -- the patient app tells them so -- so among one
+ * window's people, whoever the desk marked as here first goes first, and a
+ * late arrival who booked early waits behind those who were already in the
+ * room. A session cut into appointments promises a time, so there the
+ * earlier appointment goes first, whenever its holder walked in.
+ *
+ * `pinnedId` is whoever the screen already says it is the turn of. They keep
+ * it until the desk marks them seen or absent, or takes back their arrival:
+ * somebody with an earlier appointment turning up late becomes next, not
+ * current, because the person already called in is not sent back out.
+ */
+export function orderPresent(present: QueueEntry[], pinnedId: number | null = null): QueueEntry[] {
+  // A whole session's people sort as one block, placed where its first
+  // booking sits in the day, and by arrival inside it. The blocks and the
+  // appointments never interleave: the day is already in window order.
+  const windowKey = (e: QueueEntry) => `${e.session}|${e.startTime}|${e.endTime}`
+  const blockStart = new Map<string, number>()
+  for (const e of present) {
+    if (!e.wholeSession) continue
+    const k = windowKey(e)
+    blockStart.set(k, Math.min(blockStart.get(k) ?? e.position, e.position))
+  }
+  const placeOf = (e: QueueEntry) =>
+    e.wholeSession ? (blockStart.get(windowKey(e)) ?? e.position) : e.position
+
+  const ordered = [...present].sort((a, b) => {
+    const byPlace = placeOf(a) - placeOf(b)
+    if (byPlace !== 0) return byPlace
+    if (a.wholeSession && b.wholeSession) {
+      const byArrival = arrivedMs(a) - arrivedMs(b)
+      if (byArrival !== 0) return byArrival
+    }
+    return a.position - b.position
+  })
+
+  const pinned = pinnedId === null ? -1 : ordered.findIndex((e) => e.id === pinnedId)
+  if (pinned > 0) ordered.unshift(...ordered.splice(pinned, 1))
+  return ordered
+}
+
 export function useQueue() {
   const store = useAppointmentStore()
   const { day, loadingDay, error } = storeToRefs(store)
 
   const date = ref(isoDay())
+
+  /** Whose turn the screen last said it was. Held here rather than worked out
+   *  afresh, so an arrival cannot take the turn from somebody already called;
+   *  a reload starts again from the ordering rule, which is as good a guess. */
+  const pinnedId = ref<number | null>(null)
 
   /**
    * The day, read as a queue.
@@ -45,9 +101,8 @@ export function useQueue() {
    * makes a list of six look like a list of nine.
    *
    * `current` is the first of those the desk has marked as here and who have
-   * not been seen, in booking order. Somebody who booked first and is still on
-   * the road holds nobody up; when they arrive they slot in among those
-   * waiting by their place in the booking order.
+   * not been seen, in the order `orderPresent` puts them. Somebody who booked
+   * first and is still on the road holds nobody up.
    */
   const queue = computed<DayQueue>(() => {
     const live = day.value.filter((a) => a.status !== CANCELLED)
@@ -92,13 +147,17 @@ export function useQueue() {
     }
 
     const remaining = entries.filter((e) => e.isWaiting)
-    const present = entries.filter((e) => e.isPresent)
+    const present = orderPresent(
+      entries.filter((e) => e.isPresent),
+      pinnedId.value,
+    )
 
     return {
       date: date.value,
       windows,
       current: present[0] ?? null,
       next: present[1] ?? null,
+      inLine: present,
       seen: entries.filter((e) => e.status === SEEN).length,
       present: present.length,
       notArrived: remaining.length - present.length,
@@ -106,6 +165,21 @@ export function useQueue() {
       remaining,
     }
   })
+
+  // Whoever the screen shows as current stays pinned until they leave the
+  // present: seen, absent, or their arrival taken back.
+  watch(
+    () => queue.value.current?.id ?? null,
+    (id) => {
+      pinnedId.value = id
+    },
+    { immediate: true },
+  )
+
+  /** Gives somebody the turn back, for undoing a tap that took it from them. */
+  function pin(id: number): void {
+    pinnedId.value = id
+  }
 
   /** What to call somebody: the account's name, then the name the clinic wrote
    *  down, then nothing worth pretending about. */
@@ -126,11 +200,15 @@ export function useQueue() {
    *  worth opening -- and the reason marking is worth doing. */
   const markSeen = (id: number) => store.setDayStatus(id, SEEN)
   const markAbsent = (id: number) => store.setDayStatus(id, ABSENT)
-  /** Undo, for the tap that landed on the wrong row. */
+  /** Back into the queue, for the tap that landed on the wrong row. */
   const markWaiting = (id: number) => store.setDayStatus(id, 'confirmed')
-  /** The desk's one other tap: they are here. And its undo. */
-  const markArrived = (id: number) => store.setDayArrived(id, true)
-  const markNotArrived = (id: number) => store.setDayArrived(id, false)
+  /** Puts a status back as it was, for an undo that must not guess. */
+  const restoreStatus = (id: number, status: string) => store.setDayStatus(id, status)
+  /** The desk's one other tap: they are here. And its undo. An undo passes
+   *  the time they first arrived, so they keep their place by it. */
+  const markArrived = (id: number, at: string = new Date().toISOString()) =>
+    store.setDayArrived(id, at)
+  const markNotArrived = (id: number) => store.setDayArrived(id, null)
 
   return {
     date,
@@ -139,11 +217,13 @@ export function useQueue() {
     error,
     isToday: computed(() => date.value === isoDay()),
     nameOf,
+    pin,
     load,
     setDate,
     markSeen,
     markAbsent,
     markWaiting,
+    restoreStatus,
     markArrived,
     markNotArrived,
   }
