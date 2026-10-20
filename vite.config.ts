@@ -24,7 +24,13 @@ export default defineConfig({
     },
   },
   server: {
+    // Fixed, and refused rather than moved when it is taken. The password
+    // reset link comes back to this address, and Supabase only honours an
+    // address on its Redirect URLs list: started second, beside the admin
+    // panel, this used to slip to 5174 and every reset link landed on the
+    // patient app's "email confirmed" page instead.
     port: 5173,
+    strictPort: true,
     host: true,
   },
   build: {
